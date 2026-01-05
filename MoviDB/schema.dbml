@@ -1,0 +1,89 @@
+﻿// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table user {
+  id integer [primary key]
+  username varchar
+  password varchar
+  role enum("normal", "moderator")
+  created_at datetime
+}
+
+Table media {
+  id integer [primary key]
+  user_id integer [not null]
+  created_at datetime
+
+  title varchar
+  description varchar
+
+  type enum("movie", "series")
+  rating_count integer [default: 0]
+  rating_sum float [default: 0]
+  rating float [check: `rating >= 0 and rating <= 5`]
+}
+
+Table movie {
+  media_id integer [primary key]  // 1-to-1 with Media
+  genre_id integer [not null]
+  duration_minutes integer
+}
+
+Table series {
+  media_id integer [primary key]  // 1-to-1 with Media
+  genre_id integer [not null]
+}
+
+Table genre {
+  id integer [primary key]
+  name varchar [not null]
+}
+
+Table season {
+  id integer [primary key]
+  series_id integer [not null]
+  title varchar
+  number integer
+}
+
+Table episode {
+  id integer [primary key]
+  season_id integer [not null]
+  title varchar
+  episode_number integer
+  created_at datetime
+}
+
+Table library_entry {
+  media_id integer [not null] // points to media (movie only)
+  user_id integer [not null]
+  watched bool
+  created_at datetime
+}
+
+Table review {
+  id integer [primary key]
+  media_id integer [not null]  // movie or series
+  user_id integer [not null]
+  title varchar
+  content varchar
+  rating float [check: `rating >= 0 and rating <= 5`]
+  created_at datetime
+}
+
+Ref: library_entry.user_id > user.id // many-to-one
+Ref: library_entry.media_id > media.id // many-to-one
+
+Ref: review.user_id > user.id // many-to-one
+Ref: review.media_id > media.id // many-to-one
+
+Ref: movie.media_id > media.id
+Ref: series.media_id > media.id
+
+Ref: season.series_id > series.media_id
+Ref: episode.season_id > season.id
+
+
+Ref: "movie"."genre_id" < "genre"."id"
+
+Ref: "series"."genre_id" < "genre"."id"
