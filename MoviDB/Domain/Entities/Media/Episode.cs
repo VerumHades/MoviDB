@@ -1,22 +1,19 @@
-﻿namespace MoviDB.domain.entities;
+﻿using MoviDB.Domain.Common;
 
-public sealed class Episode
+namespace MoviDB.Domain.Entities.Media;
+
+public sealed class Episode: TimestampedEntity
 {
-    public int Id { get; }
     public int SeasonId { get; }
     public string Title { get; }
     public int EpisodeNumber { get; }
-    public DateTime CreatedAt { get; }
-
-    public Episode(int id, int seasonId, string title, int episodeNumber, DateTime createdAt)
+    public Episode(int seasonId, string title, int episodeNumber)
     {
         if (episodeNumber <= 0) throw new ArgumentException("Episode number must be positive");
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Episode title cannot be empty");
 
-        Id = id;
         SeasonId = seasonId;
         Title = title;
         EpisodeNumber = episodeNumber;
-        CreatedAt = createdAt;
     }
 }

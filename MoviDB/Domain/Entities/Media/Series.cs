@@ -1,4 +1,6 @@
-﻿namespace MoviDB.domain.entities;
+﻿using MoviDB.Domain.Common;
+
+namespace MoviDB.Domain.Entities.Media;
 
 public sealed class Series
 {

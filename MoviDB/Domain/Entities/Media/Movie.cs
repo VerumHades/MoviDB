@@ -1,4 +1,4 @@
-﻿namespace MoviDB.domain.entities;
+﻿namespace MoviDB.Domain.Entities.Media;
 
 public sealed class Movie
 {

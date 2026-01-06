@@ -1,18 +1,19 @@
-﻿namespace MoviDB.domain.entities;
+﻿using MoviDB.Domain.Common;
 
-public sealed class Season
+namespace MoviDB.Domain.Entities.Media;
+
+public sealed class Season: Entity
 {
     public int Id { get; }
     public int SeriesMediaId { get; }
     public string Title { get; }
     public int Number { get; }
 
-    public Season(int id, int seriesMediaId, int number, string title)
+    public Season(int seriesMediaId, int number, string title)
     {
         if (number <= 0) throw new ArgumentException("Season number must be positive");
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Season title cannot be empty");
 
-        Id = id;
         SeriesMediaId = seriesMediaId;
         Number = number;
         Title = title;

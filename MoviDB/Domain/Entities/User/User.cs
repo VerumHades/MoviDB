@@ -1,4 +1,6 @@
-﻿namespace MoviDB.domain.entities;
+﻿using MoviDB.Domain.Common;
+
+namespace MoviDB.Domain.Entities.User;
 
 
 public enum UserRole
@@ -7,24 +9,21 @@ public enum UserRole
     Moderator
 }
 
-public sealed class User
+public sealed class User: TimestampedEntity
 {
-    public int Id { get; }
     public string Username { get; }
     public string Password { get; private set; }
     public UserRole Role { get; }
-    public DateTime CreatedAt { get; }
 
-    public User(int id, string username, string password, UserRole role, DateTime createdAt)
+    public User(string username, string password, UserRole role)
     {
         if (string.IsNullOrWhiteSpace(username)) throw new ArgumentException("Username cannot be empty");
         if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Password cannot be empty");
 
-        Id = id;
+
         Username = username;
         Password = password;
         Role = role;
-        CreatedAt = createdAt;
     }
 
     public void ChangePassword(string newPassword)
