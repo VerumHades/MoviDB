@@ -4,17 +4,15 @@ using Microsoft.Data.SqlClient;
 namespace MoviDB.Infrastructure;
 
 /// <summary>
-/// Executes SQL commands bound to an existing transaction.
+/// Executes SQL commands in autocommit mode.
 /// </summary>
-public sealed class SqlServerTransactionalExecutor : ISqlExecutor
+public sealed class SqlServerAutocommitExecutor : ISqlExecutor
 {
     private readonly SqlConnection connection;
-    private readonly SqlTransaction transaction;
 
-    public SqlServerTransactionalExecutor(SqlConnection connection, SqlTransaction transaction)
+    public SqlServerAutocommitExecutor(SqlConnection connection)
     {
         this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-        this.transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
     }
 
     public async Task ExecuteNonQueryAsync(string sql, IReadOnlyDictionary<string, object> parameters)
@@ -54,7 +52,7 @@ public sealed class SqlServerTransactionalExecutor : ISqlExecutor
 
     private SqlCommand CreateCommand(string sql, IReadOnlyDictionary<string, object> parameters)
     {
-        var command = new SqlCommand(sql, connection, transaction);
+        var command = new SqlCommand(sql, connection);
 
         if (parameters != null)
         {

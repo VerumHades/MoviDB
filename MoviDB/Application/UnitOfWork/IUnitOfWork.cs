@@ -2,11 +2,13 @@
 
 namespace MoviDB.Application.UnitOfWork;
 
-public interface IUnitOfWork
+public interface IUnitOfWork: IDisposable, IAsyncDisposable
 {
-    IMovieRepository Movies { get; }
-    ISeriesRepository Series { get; }
-    IGenreRepository Genres { get; }
+    IMovieCommandRepository Movies { get; }
+    ISeriesCommandRepository Series { get; }
+    IGenreCommandRepository Genres { get; }
+    
+    IReviewCommandRepository Reviews { get; }
 
     Task CommitAsync();
     Task RollbackAsync();

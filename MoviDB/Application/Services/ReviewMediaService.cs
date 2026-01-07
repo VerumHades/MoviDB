@@ -1,4 +1,5 @@
 ﻿using MoviDB.Application.DTOs;
+using MoviDB.Application.UnitOfWork;
 using MoviDB.Domain.DTOs;
 using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.Exceptions;
@@ -8,15 +9,13 @@ namespace MoviDB.Application.Services;
 
 public sealed class ReviewMediaService
 {
-    private readonly IReviewCommandRepository reviewCommandRepository;
     private readonly IMediaExistenceChecker mediaExistenceChecker;
+    private readonly IUnitOfWorkFactory _unitOfWorkFactory;
 
-    public ReviewMediaService(
-        IReviewCommandRepository reviewCommandRepository,
-        IMediaExistenceChecker mediaExistenceChecker)
+    public ReviewMediaService(IMediaExistenceChecker mediaExistenceChecker, IUnitOfWorkFactory unitOfWorkFactory)
     {
-        this.reviewCommandRepository = reviewCommandRepository;
         this.mediaExistenceChecker = mediaExistenceChecker;
+        _unitOfWorkFactory = unitOfWorkFactory;
     }
 
     public async Task AddReviewAsync(ReviewCreationData creationData)
@@ -32,8 +31,19 @@ public sealed class ReviewMediaService
             creationData.Title,
             creationData.Content,
             creationData.Rating);
+    
+        await using var uow = await _unitOfWorkFactory.Create();
 
-        await reviewCommandRepository.CreateAsync(review);
+        try
+        {
+           await uow.Reviews.CreateAsync(review);
+           await uow.CommitAsync();
+        }
+        catch
+        {
+            await uow.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task UpdateReviewAsync(int reviewId, ReviewUpdateData updateData)
@@ -49,12 +59,35 @@ public sealed class ReviewMediaService
             updateData.Title,
             updateData.Content,
             updateData.Rating);
+        
+        await using var uow = await _unitOfWorkFactory.Create();
 
-        await reviewCommandRepository.UpdateAsync(review);
+        try
+        {
+            await uow.Reviews.UpdateAsync(review);
+            await uow.CommitAsync();
+        }
+        catch
+        {
+            await uow.RollbackAsync();
+            throw;
+        }
+
     }
 
     public async Task RemoveReviewAsync(int reviewId, int userId)
     {
-        await reviewCommandRepository.RemoveAsync(reviewId, userId);
+        await using var uow = await _unitOfWorkFactory.Create();
+
+        try
+        {
+            await uow.Reviews.RemoveAsync(reviewId, userId);
+            await uow.CommitAsync();
+        }
+        catch
+        {
+            await uow.RollbackAsync();
+            throw;
+        }
     }
 }

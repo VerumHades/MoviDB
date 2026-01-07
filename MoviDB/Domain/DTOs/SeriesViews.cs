@@ -31,6 +31,5 @@ public record SeriesEpisodeProjection(
     int EpisodeId,
     int SeasonId,
     string Title,
-    int EpisodeNumber,
-    DateTime CreatedAt
+    int EpisodeNumber
 );

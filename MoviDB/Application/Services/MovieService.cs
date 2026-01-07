@@ -1,4 +1,5 @@
-﻿using MoviDB.Domain.DTOs;
+﻿using MoviDB.Application.UnitOfWork;
+using MoviDB.Domain.DTOs;
 using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.Exceptions;
 using MoviDB.Domain.Repositories;
@@ -7,13 +8,15 @@ namespace MoviDB.Application.Services;
 
 public class MovieService
 {
-    private readonly IMovieRepository _movieRepository;
-    private readonly IGenreRepository _genreRepository;
+    private readonly IMovieQueryRepository _movieQueryRepository;
+    private readonly IGenreQueryRepository _genreRepository;
+    private readonly IUnitOfWorkFactory _unitOfWorkFactory;
 
-    public MovieService(IMovieRepository movieRepository, IGenreRepository genreRepository)
+    public MovieService(IMovieQueryRepository movieQueryRepository, IGenreQueryRepository genreRepository, IUnitOfWorkFactory unitOfWorkFactory)
     {
-        _movieRepository = movieRepository;
+        _movieQueryRepository = movieQueryRepository;
         _genreRepository = genreRepository;
+        _unitOfWorkFactory = unitOfWorkFactory;
     }
 
     public async Task<Movie> RegisterMovieAsync(
@@ -26,8 +29,20 @@ public class MovieService
         if (genre == null)
             throw new GenreNotFoundException("Genre not found");
         
-        var movie = new Movie(title, description, genre, durationMinutes);
-        return await _movieRepository.Create(movie);
+        await using var uow = await _unitOfWorkFactory.Create();
+
+        try
+        {
+            var movie = new Movie(title, description, genre, durationMinutes);
+            var persisted = await uow.Movies.Create(movie);
+            await uow.CommitAsync();
+            return persisted;
+        }
+        catch
+        {
+            await uow.RollbackAsync();
+            throw;
+        }
     }
     
     public async Task<(MovieProjection[] Movies, MovieCursor? NextCursor)> GetNextBatchOfAllAsync(
@@ -35,6 +50,6 @@ public class MovieService
         MovieCursor? cursor = null,
         MovieFilter? filter = null)
     {
-        return await _movieRepository.GetNextBatchOfAllAsync(batchSize, cursor, filter);
+        return await _movieQueryRepository.GetNextBatchOfAllAsync(batchSize, cursor, filter);
     }
 }

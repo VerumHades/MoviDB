@@ -4,7 +4,7 @@ using MoviDB.Domain.ValueObjects;
 
 namespace MoviDB.Domain.Repositories;
 
-public interface IMovieRepository
+public interface IMovieQueryRepository
 {
     /// <summary>
     /// Returns the Movie aggregate with its underlying Media.
@@ -15,6 +15,10 @@ public interface IMovieRepository
     
     Task<RatingSnapshot> GetRatingSnapshotAsync(int movieId);
     
+}
+
+public interface IMovieCommandRepository
+{
     /// <summary>
     /// Creates a new Movie along with the underlying Media row.
     /// </summary>

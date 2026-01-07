@@ -3,15 +3,8 @@ using MoviDB.Domain.Repositories;
 
 namespace MoviDB.Infrastructure.Repositories;
 
-public class GenreRepository : IGenreRepository
+public class SqlGenreQueryRepository(ISqlExecutor executor): Repository(executor), IGenreQueryRepository
 {
-    private readonly ISqlExecutor _sqlExecutor;
-
-    public GenreRepository(ISqlExecutor sqlExecutor)
-    {
-        _sqlExecutor = sqlExecutor;
-    }
-
     public async Task<bool> ExistsByNameAsync(string name)
     {
         const string sql = "SELECT TOP 1 id FROM genre WHERE name = @name";
@@ -44,7 +37,10 @@ public class GenreRepository : IGenreRepository
 
         return genre;
     }
+}
 
+public class SqlGenreCommandRepository(ISqlExecutor executor): Repository(executor), IGenreCommandRepository
+{
     public async Task<Genre> CreateAsync(string name)
     {
         const string sql = @"

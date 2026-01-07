@@ -6,15 +6,8 @@ using MoviDB.Domain.ValueObjects;
 
 namespace MoviDB.Infrastructure.Repositories;
 
-public class SqlMovieRepository : IMovieRepository
+public class SqlMovieQueryRepository(ISqlExecutor executor) : Repository(executor), IMovieQueryRepository
 {
-    private readonly ISqlExecutor _sqlExecutor;
-
-    public SqlMovieRepository(ISqlExecutor sqlExecutor)
-    {
-        _sqlExecutor = sqlExecutor;
-    }
-
     public async Task<Movie?> GetByIdAsync(int mediaId)
     {
         const string sql = "SELECT * FROM vw_movie WHERE media_id = @id";
@@ -41,7 +34,8 @@ public class SqlMovieRepository : IMovieRepository
         return result.FirstOrDefault();
     }
 
-    public async Task<(MovieProjection[], MovieCursor)> GetNextBatchOfAllAsync(int batchSize, MovieCursor? cursor = null, MovieFilter? filter = null)
+    public async Task<(MovieProjection[], MovieCursor)> GetNextBatchOfAllAsync(int batchSize,
+        MovieCursor? cursor = null, MovieFilter? filter = null)
     {
         var sqlBuilder = new List<string>();
         var parameters = new Dictionary<string, object>();
@@ -51,7 +45,7 @@ public class SqlMovieRepository : IMovieRepository
 
         if (cursor != null)
         {
-            sqlBuilder.Add("AND (m.created_at > @cursorCreated OR (m.created_at = @cursorCreated AND m.id > @cursorId))");
+            sqlBuilder.Add("AND (created_at > @cursorCreated OR (created_at = @cursorCreated AND id > @cursorId))");
             parameters["@cursorCreated"] = cursor.CreatedAt;
             parameters["@cursorId"] = cursor.Id;
         }
@@ -60,54 +54,54 @@ public class SqlMovieRepository : IMovieRepository
         {
             if (!string.IsNullOrWhiteSpace(filter.TitleContains))
             {
-                sqlBuilder.Add("AND m.title LIKE @titleContains");
+                sqlBuilder.Add("AND title LIKE @titleContains");
                 parameters["@titleContains"] = $"%{filter.TitleContains}%";
             }
 
             if (filter.GenreId.HasValue)
             {
-                sqlBuilder.Add("AND mv.genre_id = @genreId");
+                sqlBuilder.Add("AND genre_id = @genreId");
                 parameters["@genreId"] = filter.GenreId.Value;
             }
 
             if (filter.MinRating.HasValue)
             {
-                sqlBuilder.Add("AND m.rating >= @minRating");
+                sqlBuilder.Add("AND rating >= @minRating");
                 parameters["@minRating"] = filter.MinRating.Value;
             }
 
             if (filter.MaxRating.HasValue)
             {
-                sqlBuilder.Add("AND m.rating <= @maxRating");
+                sqlBuilder.Add("AND rating <= @maxRating");
                 parameters["@maxRating"] = filter.MaxRating.Value;
             }
 
             if (filter.MinDuration.HasValue)
             {
-                sqlBuilder.Add("AND mv.duration_minutes >= @minDuration");
+                sqlBuilder.Add("AND duration_minutes >= @minDuration");
                 parameters["@minDuration"] = filter.MinDuration.Value;
             }
 
             if (filter.MaxDuration.HasValue)
             {
-                sqlBuilder.Add("AND mv.duration_minutes <= @maxDuration");
+                sqlBuilder.Add("AND duration_minutes <= @maxDuration");
                 parameters["@maxDuration"] = filter.MaxDuration.Value;
             }
 
             if (filter.CreatedAfter.HasValue)
             {
-                sqlBuilder.Add("AND m.created_at >= @createdAfter");
+                sqlBuilder.Add("AND created_at >= @createdAfter");
                 parameters["@createdAfter"] = filter.CreatedAfter.Value;
             }
 
             if (filter.CreatedBefore.HasValue)
             {
-                sqlBuilder.Add("AND m.created_at <= @createdBefore");
+                sqlBuilder.Add("AND created_at <= @createdBefore");
                 parameters["@createdBefore"] = filter.CreatedBefore.Value;
             }
         }
 
-        sqlBuilder.Add("ORDER BY m.created_at, m.id"); // cursor ordering
+        sqlBuilder.Add("ORDER BY created_at, id"); // cursor ordering
 
         var sql = string.Join(" ", sqlBuilder);
 
@@ -125,7 +119,7 @@ public class SqlMovieRepository : IMovieRepository
             return new MovieProjection(id, title, description, genreName, ratingSnapshot);
         });
 
-        var nextCursor = rows.Count > 0 
+        var nextCursor = rows.Count > 0
             ? new MovieCursor(rows[^1].Id, DateTime.Now) // could use created_at from last row
             : cursor ?? new MovieCursor(0, DateTime.MinValue);
 
@@ -155,33 +149,59 @@ public class SqlMovieRepository : IMovieRepository
 
         return result.FirstOrDefault() ?? new RatingSnapshot(0, 0);
     }
+}
+
+public class SqlMovieCommandRepository(ISqlExecutor executor): Repository(executor), IMovieCommandRepository
+{
 
     public async Task<Movie> Create(Movie movie)
     {
-        // Create media first
-        const string sqlMedia = @"
-            INSERT INTO media (user_id, title, description, type, rating_count, rating_sum, rating)
-            OUTPUT INSERTED.id
-            VALUES (@userId, @title, @description, 'movie', 0, 0, 0);
-            INSERT INTO movie (media_id, genre_id, duration_minutes)
-            VALUES (@mediaId, @genreId, @durationMinutes);
-        ";
-        const string sqlMovie = @"
-            INSERT INTO movie (media_id, genre_id, duration_minutes)
-            VALUES (@mediaId, @genreId, @durationMinutes);
-        ";
-        
-        var mediaParams = new Dictionary<string, object>
-        {
-            ["@title"] = movie.Title,
-            ["@description"] = movie.Description,
-            ["@mediaId"] = movie.Id,
-            ["@genreId"] = movie.Genre.Id,
-            ["@durationMinutes"] = (object?)movie.DurationMinutes ?? DBNull.Value
-        };
-        
-        await  _sqlExecutor.ExecuteAllNonQueryInTransactionAsync([sqlMedia, sqlMovie], mediaParams);
-        
-        return movie.Hydrate(mediaId, movie.Title, movie.Description, movie.Genre.Name, movie.DurationMinutes);
-    }
+
+            // Insert media and get the inserted ID
+            const string sqlInsertMedia = @"
+                INSERT INTO media (title, description, type, rating_count, rating_sum)
+                OUTPUT INSERTED.id, INSERTED.title, INSERTED.description
+                VALUES (@title, @description, 'movie', 0, 0);
+            ";
+
+            var mediaParams = new Dictionary<string, object>
+            {
+                ["@title"] = movie.Title,
+                ["@description"] = movie.Description
+            };
+
+            // Map the inserted media row to extract id
+            var mediaRow = await _sqlExecutor.QueryAsync(sqlInsertMedia, mediaParams, reader =>
+            {
+                int id = reader.GetInt32(0);
+                string title = reader.GetString(1);
+                string description = reader.GetString(2);
+                return new { Id = id, Title = title, Description = description };
+            });
+
+            if (mediaRow.Count == 0)
+                throw new InvalidOperationException("Failed to insert media.");
+
+            var mediaId = mediaRow[0].Id;
+
+            // Insert into movie table
+            const string sqlInsertMovie = @"
+                INSERT INTO movie (media_id, genre_id, duration_minutes)
+                VALUES (@mediaId, @genreId, @durationMinutes);
+            ";
+
+            var movieParams = new Dictionary<string, object>
+            {
+                ["@mediaId"] = mediaId,
+                ["@genreId"] = movie.Genre.Id,
+                ["@durationMinutes"] = (object?)movie.DurationMinutes ?? DBNull.Value
+            };
+
+            await _sqlExecutor.ExecuteNonQueryAsync(sqlInsertMovie, movieParams);
+
+            // Hydrate movie object
+            return Movie.Hydrate(mediaId, movie.Title, movie.Description, movie.Genre.Id, movie.Genre.Name, movie.DurationMinutes);
+
+        }
+
 }

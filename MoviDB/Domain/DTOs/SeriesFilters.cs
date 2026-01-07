@@ -17,7 +17,8 @@ public record SeriesFilter(
 /// </summary>
 public record SeriesEpisodeFilter(
     string? TitleContains = null,
-    int? SeasonNumber = null,
+    int? SeriesId = null,
+    int? SeasonId = null,
     int? EpisodeNumber = null,
     DateTime? CreatedAfter = null,
     DateTime? CreatedBefore = null

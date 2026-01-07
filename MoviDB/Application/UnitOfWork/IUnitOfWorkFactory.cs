@@ -2,5 +2,5 @@
 
 public interface IUnitOfWorkFactory
 {
-    IUnitOfWork Create();
+    Task<IUnitOfWork> Create();
 }

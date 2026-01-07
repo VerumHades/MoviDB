@@ -2,15 +2,8 @@
 
 namespace MoviDB.Infrastructure.Repositories;
 
-public class SqlMediaExistenceChecker : IMediaExistenceChecker
+public class SqlMediaExistenceChecker(ISqlExecutor sqlExecutor): Repository(sqlExecutor), IMediaExistenceChecker
 {
-    private readonly ISqlExecutor _sqlExecutor;
-
-    public SqlMediaExistenceChecker(ISqlExecutor sqlExecutor)
-    {
-        _sqlExecutor = sqlExecutor;
-    }
-
     public async Task<bool> MediaExistsAsync(int id)
     {
         const string sql = "SELECT TOP 1 id FROM media WHERE id = @id";

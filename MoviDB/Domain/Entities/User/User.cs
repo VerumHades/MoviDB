@@ -12,22 +12,27 @@ public enum UserRole
 public sealed class User: Entity
 {
     public string Username { get; }
-    public string Password { get; private set; }
+    public string PasswordHash { get; private set; }
     public UserRole Role { get; }
 
-    public User(string username, string password, UserRole role)
+    public User(string username, string passwordHash, UserRole role)
     {
         if (string.IsNullOrWhiteSpace(username)) throw new ArgumentException("Username cannot be empty");
-        if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Password cannot be empty");
+        if (string.IsNullOrWhiteSpace(passwordHash)) throw new ArgumentException("Password cannot be empty");
 
         Username = username;
-        Password = password;
+        PasswordHash = passwordHash;
         Role = role;
     }
 
     public void ChangePassword(string newPassword)
     {
         if (string.IsNullOrWhiteSpace(newPassword)) throw new ArgumentException("Password cannot be empty");
-        Password = newPassword;
+        PasswordHash = newPassword;
+    }
+
+    public static User Hydrate(int id, string username, string passwordHash, UserRole role)
+    {
+        return new User(username, passwordHash, role) { Id = id };
     }
 }

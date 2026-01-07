@@ -10,17 +10,17 @@ namespace MoviDB.Application.Services;
 
 public class SeriesService
 {
-    private readonly ISeriesRepository _seriesRepository;
-    private readonly IGenreRepository _genreRepository;
+    private readonly ISeriesQueryRepository _seriesQueryRepository;
+    private readonly IGenreQueryRepository _genreRepository;
     private readonly IUnitOfWorkFactory _unitOfWorkFactory;
 
-    public SeriesService(ISeriesRepository seriesRepository, IGenreRepository genreRepository, IUnitOfWorkFactory unitOfWorkFactory)
+    public SeriesService(ISeriesQueryRepository seriesQueryRepository, IGenreQueryRepository genreRepository, IUnitOfWorkFactory unitOfWorkFactory)
     {
-        _seriesRepository = seriesRepository;
+        _seriesQueryRepository = seriesQueryRepository;
         _genreRepository = genreRepository;
         _unitOfWorkFactory = unitOfWorkFactory;
     }
-    
+
     public async Task<Series> RegisterSeriesAsync(
         string title,
         string description,
@@ -30,8 +30,20 @@ public class SeriesService
         if (genre is null)
             throw new GenreNotFoundException(genreName);
 
-        var series = new Series(title, description, genre);
-        return await _seriesRepository.Create(series);
+        await using var uow = await _unitOfWorkFactory.Create();
+
+        try
+        {
+            var series = new Series(title, description, genre);
+            var persisted = await uow.Series.Create(series);
+            await uow.CommitAsync();
+            return persisted;
+        }
+        catch
+        {
+            await uow.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<Series> RegisterSeriesWithSeasonsAndEpisodesAsync(
@@ -42,27 +54,37 @@ public class SeriesService
         if (genre is null)
             throw new GenreNotFoundException(creationData.GenreName);
         
-        var uow = _unitOfWorkFactory.Create();
+        await using var uow = await _unitOfWorkFactory.Create();
 
         try
         {
+            // Create the series first
             var series = new Series(creationData.Title, creationData.Description, genre);
             var persistedSeries = await uow.Series.Create(series);
-            
-            var seasons = creationData.Seasons
-                .Select(s => new Season(persistedSeries.Id, s.Number, s.Title))
-                .ToList();
 
-            await uow.Series.AddSeasonsBulkAsync(seasons);
+            // Add each season individually, collecting the persisted objects
+            var persistedSeasons = new List<Season>();
+            foreach (var seasonData in creationData.Seasons)
+            {
+                var season = new Season(persistedSeries.Id, seasonData.Number, seasonData.Title);
+                var persistedSeason = await uow.Series.AddSeasonAsync(season);
+                persistedSeasons.Add(persistedSeason);
+            }
 
-            var episodes = creationData.Seasons
-                .SelectMany((seasonData, index) =>
-                    seasonData.Episodes.Select(e => new Episode(seasons[index].Id, e.Title, e.EpisodeNumber)))
-                .ToList();
-            
-            await uow.Series.AddEpisodesBulkAsync(episodes);
+            // Add episodes individually, using the persisted season IDs
+            foreach (var (seasonData, index) in creationData.Seasons.Select((s, i) => (s, i)))
+            {
+                var persistedSeason = persistedSeasons[index];
+                foreach (var episodeData in seasonData.Episodes)
+                {
+                    var episode = new Episode(persistedSeason.Id, episodeData.Title, episodeData.EpisodeNumber);
+                    await uow.Series.AddEpisodeAsync(episode);
+                }
+            }
+
+            // Commit everything in one transaction
             await uow.CommitAsync();
-            
+
             return persistedSeries;
         }
         catch
@@ -77,7 +99,7 @@ public class SeriesService
         SeriesCursor? cursor = null,
         SeriesFilter? filter = null)
     {
-        return await _seriesRepository.GetNextBatchAsync(batchSize, cursor, filter);
+        return await _seriesQueryRepository.GetNextBatchAsync(batchSize, cursor, filter);
     }
 
     public async Task<(SeriesEpisodeProjection[], SeriesEpisodeCursor?)> GetNextBatchEpisodesAsync(
@@ -85,16 +107,16 @@ public class SeriesService
         SeriesEpisodeCursor? cursor = null,
         SeriesEpisodeFilter? filter = null)
     {
-        return await _seriesRepository.GetNextBatchEpisodesAsync(batchSize, cursor, filter);
+        return await _seriesQueryRepository.GetNextBatchEpisodesAsync(batchSize, cursor, filter);
     }
 
     public async Task<List<Season>> GetSeasonsAsync(int seriesId)
     {
-        return await _seriesRepository.GetSeasonsAsync(seriesId);
+        return await _seriesQueryRepository.GetSeasonsAsync(seriesId);
     }
 
     public async Task<RatingSnapshot> GetRatingSnapshotAsync(int seriesId)
     {
-        return await _seriesRepository.GetRatingSnapshotAsync(seriesId);
+        return await _seriesQueryRepository.GetRatingSnapshotAsync(seriesId);
     }
 }
