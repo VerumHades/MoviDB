@@ -1,11 +1,11 @@
 ﻿using MoviDB.Domain.ValueObjects;
 
-namespace MoviDB.Domain.Views;
+namespace MoviDB.Domain.DTOs;
 
 /// <summary>
 /// Lightweight read-only projection of a series for listing.
 /// </summary>
-public record SeriesView(
+public record SeriesProjection(
     int SeriesId,
     string Title,
     string Description,
@@ -17,7 +17,7 @@ public record SeriesView(
 /// <summary>
 /// Lightweight read-only projection of a season for listing.
 /// </summary>
-public record SeasonView(
+public record SeasonProjection(
     int SeasonId,
     int SeriesId,
     string Title,
@@ -27,7 +27,7 @@ public record SeasonView(
 /// <summary>
 /// Lightweight read-only projection of an episode for listing.
 /// </summary>
-public record SeriesEpisodeView(
+public record SeriesEpisodeProjection(
     int EpisodeId,
     int SeasonId,
     string Title,

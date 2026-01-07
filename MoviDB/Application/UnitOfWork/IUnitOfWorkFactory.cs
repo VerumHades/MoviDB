@@ -1,4 +1,4 @@
-﻿namespace MoviDB.Domain.Repositories;
+﻿namespace MoviDB.Application.UnitOfWork;
 
 public interface IUnitOfWorkFactory
 {

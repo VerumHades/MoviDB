@@ -1,17 +1,33 @@
 ﻿namespace MoviDB.Domain.Entities.Media;
 
-public sealed class Movie
+public sealed class Movie : Media
 {
-    public Media Media { get; }
     public Genre Genre { get; }
     public int DurationMinutes { get; }
 
-    public Movie(Media media, Genre genre, int durationMinutes)
+    public Movie(string title, string description, Genre genre, int durationMinutes) : base(title, description)
     {
-        Media = media ?? throw new ArgumentNullException(nameof(media));
-        if (media.Type != MediaType.Movie)
-            throw new ArgumentException("Media must be of type Movie");
-        Genre = genre ?? throw new ArgumentNullException(nameof(genre));
+        Genre = genre;
         DurationMinutes = durationMinutes;
+    }
+    
+    /// <summary>
+    /// Constructs a Movie instance from database values.
+    /// </summary>
+    public static Movie Hydrate(
+        int mediaId,
+        string title,
+        string description,
+        int genreId,
+        string genreName,
+        int durationMinutes)
+    {
+        var genre = Genre.Hydrate(genreId, genreName);
+        var movie = new Movie(title, description, genre, durationMinutes);
+
+        // Assign ID (assuming Media has a setter or internal constructor)
+        movie.Id = mediaId; // You may need to add this method in Media base class
+
+        return movie;
     }
 }

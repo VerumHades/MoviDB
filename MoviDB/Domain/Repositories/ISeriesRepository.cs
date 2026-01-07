@@ -1,7 +1,6 @@
 ﻿using MoviDB.Domain.DTOs;
 using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.ValueObjects;
-using MoviDB.Domain.Views;
 
 namespace MoviDB.Domain.Repositories;
 
@@ -18,9 +17,9 @@ public interface ISeriesRepository
     /// </summary>
     Task<Series> Create(Series series);
     
-    Task<(SeriesView[],SeriesCursor)> GetNextBatchAsync(int batchSize, SeriesCursor? cursor = null, SeriesFilter? filter = null);
+    Task<(SeriesProjection[],SeriesCursor)> GetNextBatchAsync(int batchSize, SeriesCursor? cursor = null, SeriesFilter? filter = null);
     Task<List<Season>> GetSeasonsAsync(int seriesId);
-    Task<(SeriesEpisodeView[],SeriesEpisodeCursor)> GetNextBatchEpisodesAsync(int batchSize, SeriesEpisodeCursor? cursor = null, SeriesEpisodeFilter? filter = null);
+    Task<(SeriesEpisodeProjection[],SeriesEpisodeCursor)> GetNextBatchEpisodesAsync(int batchSize, SeriesEpisodeCursor? cursor = null, SeriesEpisodeFilter? filter = null);
     
     /// <summary>
     /// Adds a season to the series.

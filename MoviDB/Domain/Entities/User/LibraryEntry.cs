@@ -2,7 +2,7 @@
 
 namespace MoviDB.Domain.Entities.User;
 
-public sealed class LibraryEntry: TimestampedEntity
+public sealed class LibraryEntry: Entity
 {
     public int MediaId { get; }
     public int UserId { get; }

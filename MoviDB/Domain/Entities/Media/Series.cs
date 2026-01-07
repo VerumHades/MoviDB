@@ -2,29 +2,31 @@
 
 namespace MoviDB.Domain.Entities.Media;
 
-public sealed class Series
+public sealed class Series: Media
 {
-    /// <summary>
-    /// The underlying Media aggregate root that contains identity, ratings, title, description, etc.
-    /// </summary>
-    public Media Media { get; }
-
-    /// <summary>
-    /// The genre of the series.
-    /// </summary>
     public Genre Genre { get; }
-
-    /// <summary>
-    /// Creates a new Series domain entity wrapping a Media aggregate.
-    /// </summary>
-    /// <param name="media">The Media aggregate. Must have MediaType.Series.</param>
-    /// <param name="genre">The genre of the series.</param>
-    public Series(Media media, Genre genre)
+    
+    public Series(string title, string description, Genre genre): base(title, description)
     {
-        Media = media ?? throw new ArgumentNullException(nameof(media));
-        if (media.Type != MediaType.Series)
-            throw new ArgumentException("Media must be of type Series", nameof(media));
+        Genre = genre;
+    }
+    
+    /// <summary>
+    /// Constructs a Series instance from database values.
+    /// </summary>
+    public static Series Hydrate(
+        int mediaId,
+        string title,
+        string description,
+        int genreId,
+        string genreName)
+    {
+        var genre = Genre.Hydrate(genreId, genreName);
+        var series = new Series(title, description, genre);
 
-        Genre = genre ?? throw new ArgumentNullException(nameof(genre));
+        // Assign ID (assuming Media has a setter or internal constructor)
+        series.Id = mediaId; // You may need to add this method in Media base class
+
+        return series;
     }
 }

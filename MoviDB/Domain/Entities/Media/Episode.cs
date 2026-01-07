@@ -2,7 +2,7 @@
 
 namespace MoviDB.Domain.Entities.Media;
 
-public sealed class Episode: TimestampedEntity
+public sealed class Episode: Entity
 {
     public int SeasonId { get; }
     public string Title { get; }

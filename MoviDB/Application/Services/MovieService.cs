@@ -2,7 +2,6 @@
 using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.Exceptions;
 using MoviDB.Domain.Repositories;
-using MoviDB.Domain.Views;
 
 namespace MoviDB.Application.Services;
 
@@ -23,15 +22,15 @@ public class MovieService
         string genreName,
         int durationMinutes)
     {
-        var genre = await _genreRepository.GetByNameASync(genreName);
+        var genre = await _genreRepository.GetByNameAsync(genreName);
         if (genre == null)
             throw new GenreNotFoundException("Genre not found");
         
-        var movie = Media.CreateMovie(title, description, genre, durationMinutes);
+        var movie = new Movie(title, description, genre, durationMinutes);
         return await _movieRepository.Create(movie);
     }
     
-    public async Task<(MovieView[] Movies, MovieCursor? NextCursor)> GetNextBatchOfAllAsync(
+    public async Task<(MovieProjection[] Movies, MovieCursor? NextCursor)> GetNextBatchOfAllAsync(
         int batchSize,
         MovieCursor? cursor = null,
         MovieFilter? filter = null)

@@ -1,8 +1,8 @@
 ﻿using MoviDB.Domain.ValueObjects;
 
-namespace MoviDB.Domain.Views;
+namespace MoviDB.Domain.DTOs;
 
-public record MovieView(
+public record MovieProjection(
     int Id,
     string Title,
     string Description,

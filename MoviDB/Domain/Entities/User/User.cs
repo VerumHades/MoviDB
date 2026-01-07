@@ -9,7 +9,7 @@ public enum UserRole
     Moderator
 }
 
-public sealed class User: TimestampedEntity
+public sealed class User: Entity
 {
     public string Username { get; }
     public string Password { get; private set; }
@@ -19,7 +19,6 @@ public sealed class User: TimestampedEntity
     {
         if (string.IsNullOrWhiteSpace(username)) throw new ArgumentException("Username cannot be empty");
         if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Password cannot be empty");
-
 
         Username = username;
         Password = password;

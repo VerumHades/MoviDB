@@ -1,7 +1,6 @@
 ﻿using MoviDB.Domain.DTOs;
 using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.ValueObjects;
-using MoviDB.Domain.Views;
 
 namespace MoviDB.Domain.Repositories;
 
@@ -12,7 +11,7 @@ public interface IMovieRepository
     /// </summary>
     Task<Movie?> GetByIdAsync(int mediaId);
     
-    Task<(MovieView[],MovieCursor)> GetNextBatchOfAllAsync(int batchSize, MovieCursor? cursor = null, MovieFilter? filter = null);
+    Task<(MovieProjection[],MovieCursor)> GetNextBatchOfAllAsync(int batchSize, MovieCursor? cursor = null, MovieFilter? filter = null);
     
     Task<RatingSnapshot> GetRatingSnapshotAsync(int movieId);
     

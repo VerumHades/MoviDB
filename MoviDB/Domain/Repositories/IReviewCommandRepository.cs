@@ -1,4 +1,4 @@
-﻿using MoviDB.Domain.DTOs;
+﻿using MoviDB.Domain.Entities.Media;
 
 namespace MoviDB.Domain.Repositories;
 
@@ -9,17 +9,17 @@ public interface IReviewCommandRepository
     /// </summary>
     /// <param name="review">The review to persist</param>
     /// <returns>Updated review with an id</returns>
-    Task AddReviewAsync(ReviewCreationData review);
+    Task CreateAsync(Review review);
     
     /// <summary>
     /// Persists a review
     /// </summary>
     /// <param name="review">The review to persist</param>
     /// <returns>Updated review with an id</returns>
-    Task UpdateReviewAsync(ReviewUpdateData review);
+    Task UpdateAsync(Review review);
     
     /// <summary>
     /// Removes a review by id.
     /// </summary>
-    Task RemoveReviewAsync(int reviewId, int userId);
+    Task RemoveAsync(int reviewId, int userId);
 }

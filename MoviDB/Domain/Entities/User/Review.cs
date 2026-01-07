@@ -2,7 +2,7 @@
 
 namespace MoviDB.Domain.Entities.Media;
 
-public sealed class Review: TimestampedEntity
+public sealed class Review
 {
     public int MediaId { get; }
     public int UserId { get; }

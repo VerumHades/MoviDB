@@ -1,8 +1,8 @@
 ﻿using MoviDB.Application.DTOs;
+using MoviDB.Application.UnitOfWork;
 using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.DTOs;
 using MoviDB.Domain.ValueObjects;
-using MoviDB.Domain.Views;
 using MoviDB.Domain.Exceptions;
 using MoviDB.Domain.Repositories;
 
@@ -20,31 +20,25 @@ public class SeriesService
         _genreRepository = genreRepository;
         _unitOfWorkFactory = unitOfWorkFactory;
     }
-
-    // ---------------------------
-    // Command: Register single series
-    // ---------------------------
+    
     public async Task<Series> RegisterSeriesAsync(
         string title,
         string description,
         string genreName)
     {
-        var genre = await _genreRepository.GetByNameASync(genreName);
+        var genre = await _genreRepository.GetByNameAsync(genreName);
         if (genre is null)
             throw new GenreNotFoundException(genreName);
 
-        var series = Media.CreateSeries(title, description, genre);
+        var series = new Series(title, description, genre);
         return await _seriesRepository.Create(series);
     }
 
-    // ---------------------------
-    // Bulk creation: series with seasons and episodes
-    // ---------------------------
     public async Task<Series> RegisterSeriesWithSeasonsAndEpisodesAsync(
         SeriesCreationData creationData)
     {
         // Validate genre
-        var genre = await _genreRepository.GetByNameASync(creationData.GenreName);
+        var genre = await _genreRepository.GetByNameAsync(creationData.GenreName);
         if (genre is null)
             throw new GenreNotFoundException(creationData.GenreName);
         
@@ -52,11 +46,11 @@ public class SeriesService
 
         try
         {
-            var series = Media.CreateSeries(creationData.Title, creationData.Description, genre);
+            var series = new Series(creationData.Title, creationData.Description, genre);
             var persistedSeries = await uow.Series.Create(series);
             
             var seasons = creationData.Seasons
-                .Select(s => new Season(persistedSeries.Media.Id, s.Number, s.Title))
+                .Select(s => new Season(persistedSeries.Id, s.Number, s.Title))
                 .ToList();
 
             await uow.Series.AddSeasonsBulkAsync(seasons);
@@ -78,7 +72,7 @@ public class SeriesService
         }
     }
 
-    public async Task<(SeriesView[], SeriesCursor?)> GetNextBatchAsync(
+    public async Task<(SeriesProjection[], SeriesCursor?)> GetNextBatchAsync(
         int batchSize,
         SeriesCursor? cursor = null,
         SeriesFilter? filter = null)
@@ -86,7 +80,7 @@ public class SeriesService
         return await _seriesRepository.GetNextBatchAsync(batchSize, cursor, filter);
     }
 
-    public async Task<(SeriesEpisodeView[], SeriesEpisodeCursor?)> GetNextBatchEpisodesAsync(
+    public async Task<(SeriesEpisodeProjection[], SeriesEpisodeCursor?)> GetNextBatchEpisodesAsync(
         int batchSize,
         SeriesEpisodeCursor? cursor = null,
         SeriesEpisodeFilter? filter = null)
