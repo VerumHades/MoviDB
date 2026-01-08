@@ -17,8 +17,29 @@ class Program
 {
     static int Main(string[] args)
     {
-        var configLoader = new JsonFileConfigLoader("DatabaseConfig.json").LoadConfiguration();
-        var connectionFactory = new SqlConnectionFactory(configLoader);
+        DatabaseConnectionConfig? config = null;
+        try
+        {
+            config = new JsonFileConfigLoader("DatabaseConfig.json").LoadConfiguration();
+        }
+        catch
+        {
+            Console.WriteLine("Failed to load configuration file? Maybe 'DatabaseConfig.json' is missing beside the executable?");
+            return 1;
+        }
+
+        SqlConnectionFactory? connectionFactory;
+        
+        try
+        {
+            connectionFactory = new SqlConnectionFactory(config);
+            using var initialConnection = connectionFactory.CreateOpenConnection();
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine("Failed to open initial connection: {0}", ex.Message);
+            return 2;
+        }
         
         var unitOfWorkFactory = new MSSQLUnitOfWorkFactory(connectionFactory);
         

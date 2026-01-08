@@ -17,7 +17,7 @@
       <None Update="DatabaseConfig.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="import.json">
+      <None Update="templates\series_import.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

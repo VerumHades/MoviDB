@@ -12,7 +12,6 @@ public class SqlConnectionFactoryTests
 
     public SqlConnectionFactoryTests()
     {
-        // Use a real test database or your test loader
         var testConfigLoader = new DatabaseConnectionConfig()
         {
             Server = "DESKTOP-EMT3CHH\\SQLEXPRESS",

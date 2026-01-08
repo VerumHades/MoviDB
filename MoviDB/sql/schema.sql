@@ -4,41 +4,52 @@
 -- =============================================
 
 -- ==========================
--- Drop and recreate database
+-- Drop Triggers if they exist
 -- ==========================
-IF DB_ID('MoviesDB') IS NOT NULL
-    BEGIN
-        DROP DATABASE MoviesDB;
-    END
-GO
-
-CREATE DATABASE MoviesDB;
-GO
-
-USE MoviesDB;
+IF OBJECT_ID('dbo.trg_review_after_insert', 'TR') IS NOT NULL
+    DROP TRIGGER dbo.trg_review_after_insert;
+IF OBJECT_ID('dbo.trg_review_after_update', 'TR') IS NOT NULL
+    DROP TRIGGER dbo.trg_review_after_update;
+IF OBJECT_ID('dbo.trg_review_after_delete', 'TR') IS NOT NULL
+    DROP TRIGGER dbo.trg_review_after_delete;
 GO
 
 -- ==========================
--- Create SQL Server logins
+-- Drop Views if they exist
 -- ==========================
--- CREATE LOGIN normal_user_login WITH PASSWORD = 'NormalUserStrongPassword!123';
---CREATE LOGIN moderator_user_login WITH PASSWORD = 'ModeratorStrongPassword!123';
---CREATE LOGIN library_manager_login WITH PASSWORD = 'LibraryManagerStrongPassword!123';
+IF OBJECT_ID('dbo.vw_movie', 'V') IS NOT NULL
+    DROP VIEW dbo.vw_movie;
+IF OBJECT_ID('dbo.vw_series', 'V') IS NOT NULL
+    DROP VIEW dbo.vw_series;
 GO
 
 -- ==========================
--- Create database users
+-- Drop Tables if they exist
 -- ==========================
-CREATE USER normal_user FOR LOGIN normal_user_login;
-CREATE USER moderator_user FOR LOGIN moderator_user_login;
-CREATE USER library_manager FOR LOGIN library_manager_login;
+IF OBJECT_ID('dbo.library_entry', 'U') IS NOT NULL
+    DROP TABLE dbo.library_entry;
+IF OBJECT_ID('dbo.review', 'U') IS NOT NULL
+    DROP TABLE dbo.review;
+IF OBJECT_ID('dbo.episode', 'U') IS NOT NULL
+    DROP TABLE dbo.episode;
+IF OBJECT_ID('dbo.season', 'U') IS NOT NULL
+    DROP TABLE dbo.season;
+IF OBJECT_ID('dbo.series', 'U') IS NOT NULL
+    DROP TABLE dbo.series;
+IF OBJECT_ID('dbo.movie', 'U') IS NOT NULL
+    DROP TABLE dbo.movie;
+IF OBJECT_ID('dbo.media', 'U') IS NOT NULL
+    DROP TABLE dbo.media;
+IF OBJECT_ID('dbo.genre', 'U') IS NOT NULL
+    DROP TABLE dbo.genre;
+IF OBJECT_ID('dbo.[user]', 'U') IS NOT NULL
+    DROP TABLE dbo.[user];
 GO
 
 -- ==========================
 -- Create Tables
 -- ==========================
 
--- Users
 CREATE TABLE dbo.[user] (
                             id INT IDENTITY(1,1) PRIMARY KEY,
                             username NVARCHAR(255) NOT NULL UNIQUE,
@@ -47,13 +58,11 @@ CREATE TABLE dbo.[user] (
                             created_at DATETIME NOT NULL DEFAULT GETDATE()
 );
 
--- Genre
 CREATE TABLE dbo.genre (
                            id INT IDENTITY(1,1) PRIMARY KEY,
                            name NVARCHAR(255) NOT NULL UNIQUE
 );
 
--- Media
 CREATE TABLE dbo.media (
                            id INT IDENTITY(1,1) PRIMARY KEY,
                            created_at DATETIME NOT NULL DEFAULT GETDATE(),
@@ -64,20 +73,17 @@ CREATE TABLE dbo.media (
                            rating_sum FLOAT NOT NULL DEFAULT 0 CHECK (rating_sum >= 0)
 );
 
--- Movie (1-to-1 with media)
 CREATE TABLE dbo.movie (
                            media_id INT PRIMARY KEY REFERENCES dbo.media(id) ON DELETE CASCADE,
                            genre_id INT NOT NULL REFERENCES dbo.genre(id),
                            duration_minutes INT NULL CHECK (duration_minutes > 0)
 );
 
--- Series (1-to-1 with media)
 CREATE TABLE dbo.series (
                             media_id INT PRIMARY KEY REFERENCES dbo.media(id) ON DELETE CASCADE,
                             genre_id INT NOT NULL REFERENCES dbo.genre(id)
 );
 
--- Season
 CREATE TABLE dbo.season (
                             id INT IDENTITY(1,1) PRIMARY KEY,
                             series_id INT NOT NULL REFERENCES dbo.series(media_id) ON DELETE CASCADE,
@@ -86,7 +92,6 @@ CREATE TABLE dbo.season (
                             CONSTRAINT uq_season_perseries UNIQUE (series_id, number)
 );
 
--- Episode
 CREATE TABLE dbo.episode (
                              id INT IDENTITY(1,1) PRIMARY KEY,
                              season_id INT NOT NULL REFERENCES dbo.season(id) ON DELETE CASCADE,
@@ -96,7 +101,6 @@ CREATE TABLE dbo.episode (
                              CONSTRAINT uq_episode_perseason UNIQUE (season_id, episode_number)
 );
 
--- Library Entry
 CREATE TABLE dbo.library_entry (
                                    media_id INT NOT NULL REFERENCES dbo.media(id),
                                    user_id INT NOT NULL REFERENCES dbo.[user](id),
@@ -105,7 +109,6 @@ CREATE TABLE dbo.library_entry (
                                    CONSTRAINT pk_library_entry PRIMARY KEY (media_id, user_id)
 );
 
--- Review
 CREATE TABLE dbo.review (
                             id INT IDENTITY(1,1) PRIMARY KEY,
                             media_id INT NOT NULL REFERENCES dbo.media(id),
@@ -164,33 +167,7 @@ GROUP BY
 GO
 
 -- ==========================
--- Grant Permissions
--- ==========================
-
--- Normal user
-GRANT SELECT ON dbo.media TO normal_user;
-GRANT SELECT ON dbo.genre TO normal_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.library_entry TO normal_user;
-GRANT SELECT ON dbo.review TO normal_user;
-
--- Moderator (normal user + review management)
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.review TO moderator_user;
-
--- Library manager (full management)
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.media TO library_manager;
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.movie TO library_manager;
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.series TO library_manager;
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.genre TO library_manager;
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.season TO library_manager;
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.episode TO library_manager;
-GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.library_entry TO library_manager;
-
-GRANT SELECT ON dbo.vw_movie TO library_manager;
-GRANT SELECT ON dbo.vw_series TO library_manager;
-
--- ==========================
--- Trigger: After Insert on Review
--- Automatically updates media rating_count and rating_sum when a new review is added
+-- Create Triggers
 -- ==========================
 CREATE TRIGGER trg_review_after_insert
     ON dbo.review
@@ -198,53 +175,41 @@ CREATE TRIGGER trg_review_after_insert
     AS
 BEGIN
     SET NOCOUNT ON;
-
     UPDATE media
     SET
         media.rating_count = media.rating_count + 1,
         media.rating_sum = media.rating_sum + inserted_review.rating
     FROM dbo.media AS media
              INNER JOIN inserted AS inserted_review ON media.id = inserted_review.media_id;
-END
+END;
 GO
 
--- ==========================
--- Trigger: After Update on Review
--- Automatically adjusts media rating_sum when an existing review's rating is updated
--- ==========================
 CREATE TRIGGER trg_review_after_update
     ON dbo.review
     AFTER UPDATE
     AS
 BEGIN
     SET NOCOUNT ON;
-
     UPDATE media
     SET media.rating_sum = media.rating_sum - deleted_review.rating + inserted_review.rating
     FROM dbo.media AS media
              INNER JOIN inserted AS inserted_review ON media.id = inserted_review.media_id
              INNER JOIN deleted AS deleted_review ON inserted_review.id = deleted_review.id
     WHERE inserted_review.rating <> deleted_review.rating;
-END
+END;
 GO
 
-SELECT * FROM vw_movie
--- ==========================
--- Trigger: After Delete on Review
--- Automatically decrements media rating_count and subtracts from rating_sum when a review is deleted
--- ==========================
 CREATE TRIGGER trg_review_after_delete
     ON dbo.review
     AFTER DELETE
     AS
 BEGIN
     SET NOCOUNT ON;
-
     UPDATE media
     SET
         media.rating_count = media.rating_count - 1,
         media.rating_sum = media.rating_sum - deleted_review.rating
     FROM dbo.media AS media
              INNER JOIN deleted AS deleted_review ON media.id = deleted_review.media_id;
-END
+END;
 GO
