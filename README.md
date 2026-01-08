@@ -116,7 +116,10 @@ DatabaseConfig.json
 
 ### From Release
 You can find the [latest release here](https://github.com/VerumHades/MoviDB/releases/latest)
-Then run with:
+1. Download the latest release `Release.zip`
+2. Extract it
+3. Navigate until you find DatabaseConfig.json
+4. Then from there run in the command line with:
 ```bash
 bin/MoviDB.exe
 ```
