@@ -30,20 +30,13 @@ public class SeriesService
         if (genre is null)
             throw new GenreNotFoundException(genreName);
 
-        await using var uow = await _unitOfWorkFactory.Create();
 
-        try
+        return await _unitOfWorkFactory.ExecuteInTransactionAsync(async uow =>
         {
             var series = new Series(title, description, genre);
             var persisted = await uow.Series.Create(series);
-            await uow.CommitAsync();
             return persisted;
-        }
-        catch
-        {
-            await uow.RollbackAsync();
-            throw;
-        }
+        });
     }
 
     public async Task<Series> RegisterSeriesWithSeasonsAndEpisodesAsync(
@@ -53,10 +46,8 @@ public class SeriesService
         var genre = await _genreRepository.GetByNameAsync(creationData.GenreName);
         if (genre is null)
             throw new GenreNotFoundException(creationData.GenreName);
-        
-        await using var uow = await _unitOfWorkFactory.Create();
 
-        try
+        return await _unitOfWorkFactory.ExecuteInTransactionAsync(async uow =>
         {
             // Create the series first
             var series = new Series(creationData.Title, creationData.Description, genre);
@@ -81,17 +72,9 @@ public class SeriesService
                     await uow.Series.AddEpisodeAsync(episode);
                 }
             }
-
-            // Commit everything in one transaction
-            await uow.CommitAsync();
-
+            
             return persistedSeries;
-        }
-        catch
-        {
-            await uow.RollbackAsync();
-            throw;
-        }
+        });
     }
 
     public async Task<(SeriesProjection[], SeriesCursor?)> GetNextBatchAsync(

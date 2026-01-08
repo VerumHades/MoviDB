@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoviDB", "MoviDB\MoviDB.csproj", "{8C02D3D7-7012-43C5-B050-9CF4A3D77095}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{AD14E547-8DF1-46AC-BA68-F138434CFFF6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{8C02D3D7-7012-43C5-B050-9CF4A3D77095}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C02D3D7-7012-43C5-B050-9CF4A3D77095}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C02D3D7-7012-43C5-B050-9CF4A3D77095}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD14E547-8DF1-46AC-BA68-F138434CFFF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD14E547-8DF1-46AC-BA68-F138434CFFF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD14E547-8DF1-46AC-BA68-F138434CFFF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD14E547-8DF1-46AC-BA68-F138434CFFF6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

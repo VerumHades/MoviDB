@@ -4,8 +4,8 @@ namespace MoviDB.Domain.Repositories;
 
 public interface IGenreQueryRepository
 {
-    Task<bool> ExistsByNameAsync(string name);
-    Task<Genre> GetByNameAsync(string name);
+    Task<Genre?> GetByNameAsync(string name);
+    Task<List<Genre>> GetAllAsync();
 }
 
 public interface IGenreCommandRepository

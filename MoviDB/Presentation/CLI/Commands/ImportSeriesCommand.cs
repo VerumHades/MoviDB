@@ -28,7 +28,7 @@ public class ImportSeriesCommand : ICommand
         };
     }
 
-    public void Execute(Dictionary<string, object> parameterValues)
+    public void Execute(Dictionary<string, object> parameterValues, TextReader input, TextWriter output)
     {
         if (!parameterValues.TryGetValue("filePath", out var pathObj) || pathObj is not string filePath)
         {

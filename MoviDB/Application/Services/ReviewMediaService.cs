@@ -32,18 +32,10 @@ public sealed class ReviewMediaService
             creationData.Content,
             creationData.Rating);
     
-        await using var uow = await _unitOfWorkFactory.Create();
-
-        try
+        await _unitOfWorkFactory.ExecuteInTransactionAsync(async uow =>
         {
-           await uow.Reviews.CreateAsync(review);
-           await uow.CommitAsync();
-        }
-        catch
-        {
-            await uow.RollbackAsync();
-            throw;
-        }
+            await uow.Reviews.CreateAsync(review);
+        });
     }
 
     public async Task UpdateReviewAsync(int reviewId, ReviewUpdateData updateData)
@@ -59,35 +51,18 @@ public sealed class ReviewMediaService
             updateData.Title,
             updateData.Content,
             updateData.Rating);
-        
-        await using var uow = await _unitOfWorkFactory.Create();
 
-        try
+        await _unitOfWorkFactory.ExecuteInTransactionAsync(async uow =>
         {
             await uow.Reviews.UpdateAsync(review);
-            await uow.CommitAsync();
-        }
-        catch
-        {
-            await uow.RollbackAsync();
-            throw;
-        }
-
+        });
     }
 
     public async Task RemoveReviewAsync(int reviewId, int userId)
     {
-        await using var uow = await _unitOfWorkFactory.Create();
-
-        try
+        await _unitOfWorkFactory.ExecuteInTransactionAsync(async uow =>
         {
             await uow.Reviews.RemoveAsync(reviewId, userId);
-            await uow.CommitAsync();
-        }
-        catch
-        {
-            await uow.RollbackAsync();
-            throw;
-        }
+        });
     }
 }

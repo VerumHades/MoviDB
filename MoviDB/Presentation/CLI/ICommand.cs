@@ -16,10 +16,5 @@ public interface ICommand
     /// <summary>
     /// Executes the command.
     /// </summary>
-    void Execute(Dictionary<string, object> parameterValues);
+    void Execute(Dictionary<string, object> parameterValues, TextReader input, TextWriter output);
 }
-
-/// <summary>
-/// Represents a single command parameter.
-/// </summary>
-public record CommandParameter(string Name, string Description, Type ParameterType);

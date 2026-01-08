@@ -1,4 +1,5 @@
-﻿using MoviDB.Domain.DTOs;
+﻿using System.Text;
+using MoviDB.Domain.DTOs;
 using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.Repositories;
 using MoviDB.Domain.ValueObjects;
@@ -30,52 +31,58 @@ public class SqlSeriesQueryRepository(ISqlExecutor sqlExecutor): Repository(sqlE
         return rows.FirstOrDefault();
     }
 
-    public async Task<(SeriesProjection[], SeriesCursor)> GetNextBatchAsync(int batchSize, SeriesCursor? cursor = null, SeriesFilter? filter = null)
+    public async Task<(SeriesProjection[], SeriesCursor)> GetNextBatchAsync(
+        int batchSize,
+        SeriesCursor? cursor = null,
+        SeriesFilter? filter = null)
     {
-        var sqlBuilder = new List<string>();
-        var parameters = new Dictionary<string, object>();
+        var sqlBuilder = new StringBuilder($"SELECT TOP {batchSize} * FROM vw_series");
+        var parameters = new Dictionary<string, object>
+        {
+  
+        };
 
-        sqlBuilder.Add(@"SELECT TOP (@batchSize) * FROM vw_series WHERE 1=1 ");
-        parameters["@batchSize"] = batchSize;
+        var conditions = new List<string>();
 
+        // Cursor condition
         if (cursor != null)
         {
-            sqlBuilder.Add("AND (CreatedAt > @cursorCreated OR (CreatedAt = @cursorCreated AND id > @cursorId))");
+            conditions.Add("(CreatedAt > @cursorCreated OR (CreatedAt = @cursorCreated AND series_id > @cursorId))");
             parameters["@cursorCreated"] = cursor.CreatedAt;
             parameters["@cursorId"] = cursor.SeriesId;
         }
 
+        // Filter mapping
         if (filter != null)
         {
-            if (!string.IsNullOrWhiteSpace(filter.TitleContains))
+            var filterConditions = new[]
             {
-                sqlBuilder.Add("AND title LIKE @titleContains");
-                parameters["@titleContains"] = $"%{filter.TitleContains}%";
-            }
+                (Value: (object?)filter.TitleContains, Column: "title", Operator: "LIKE", Transform: (Func<object, object>)(v => $"%{v}%")),
+                (Value: filter.GenreId, Column: "genre_id", Operator: "=", Transform: null),
+                (Value: filter.MinRating, Column: "rating", Operator: ">=", Transform: null),
+                (Value: filter.MaxRating, Column: "rating", Operator: "<=", Transform: null)
+            };
 
-            if (filter.GenreId.HasValue)
+            foreach (var (value, column, sqlOperator, transform) in filterConditions)
             {
-                sqlBuilder.Add("AND genre_id = @genreId");
-                parameters["@genreId"] = filter.GenreId.Value;
-            }
-
-            if (filter.MinRating.HasValue)
-            {
-                sqlBuilder.Add("AND rating >= @minRating");
-                parameters["@minRating"] = filter.MinRating.Value;
-            }
-
-            if (filter.MaxRating.HasValue)
-            {
-                sqlBuilder.Add("AND rating <= @maxRating");
-                parameters["@maxRating"] = filter.MaxRating.Value;
+                if (value != null && !(value is string s && string.IsNullOrWhiteSpace(s)))
+                {
+                    string paramName = $"@{column}{parameters.Count}";
+                    object finalValue = transform != null ? transform(value) : value;
+                    conditions.Add($"{column} {sqlOperator} {paramName}");
+                    parameters[paramName] = finalValue;
+                }
             }
         }
 
-        sqlBuilder.Add("ORDER BY CreatedAt, SeriesId");
+        if (conditions.Count > 0)
+            sqlBuilder.Append(" WHERE ").Append(string.Join(" AND ", conditions));
 
-        var sql = string.Join(" ", sqlBuilder);
+        sqlBuilder.Append(" ORDER BY CreatedAt, id");
 
+        var sql = sqlBuilder.ToString();
+
+        DateTime lastCreatedAt = DateTime.MinValue;
         var rows = await _sqlExecutor.QueryAsync(sql, parameters, reader =>
         {
             int id = reader.GetInt32(0);
@@ -84,18 +91,20 @@ public class SqlSeriesQueryRepository(ISqlExecutor sqlExecutor): Repository(sqlE
             string genreName = reader.GetString(3);
             int seasonCount = reader.GetInt32(4);
             int ratingCount = reader.GetInt32(5);
-            double rating = reader.GetDouble(7);
-            var ratingSnapshot = new RatingSnapshot(ratingCount, rating);
+            double ratingSum = reader.GetDouble(7);
+            var ratingSnapshot = new RatingSnapshot(ratingCount, ratingSum);
 
+            lastCreatedAt = reader.GetDateTime(6); // assuming CreatedAt is at index 6
             return new SeriesProjection(id, title, description, genreName, seasonCount, ratingSnapshot);
         });
 
         var nextCursor = rows.Count > 0
-            ? new SeriesCursor(rows[^1].SeriesId, DateTime.Now)
+            ? new SeriesCursor(rows[^1].SeriesId, lastCreatedAt)
             : cursor ?? new SeriesCursor(0, DateTime.MinValue);
 
         return (rows.ToArray(), nextCursor);
     }
+
 
     public async Task<List<Season>> GetSeasonsAsync(int seriesId)
     {
@@ -118,61 +127,73 @@ public class SqlSeriesQueryRepository(ISqlExecutor sqlExecutor): Repository(sqlE
     }
     
 
-    public async Task<(SeriesEpisodeProjection[], SeriesEpisodeCursor)> GetNextBatchEpisodesAsync(int batchSize, SeriesEpisodeCursor? cursor = null, SeriesEpisodeFilter? filter = null)
+    public async Task<(SeriesEpisodeProjection[], SeriesEpisodeCursor)> GetNextBatchEpisodesAsync(
+        int batchSize,
+        SeriesEpisodeCursor? cursor = null,
+        SeriesEpisodeFilter? filter = null)
     {
-        var sqlBuilder = new List<string>();
+        var sqlBuilder = new StringBuilder($"SELECT TOP {batchSize} id, series_id, title, episode_number, CreatedAt FROM episode e");
         var parameters = new Dictionary<string, object>
         {
-            ["@batchSize"] = batchSize
+
         };
 
-        sqlBuilder.Add("SELECT TOP @batchSize id, series_id, title, episode_number " +
-                       "FROM episode" +
-                       "WHERE 1=1");
+        var conditions = new List<string>();
 
+        // Cursor condition
         if (cursor != null)
         {
-            sqlBuilder.Add("AND (e.CreatedAt > @cursorCreated OR (e.CreatedAt = @cursorCreated AND e.id > @cursorId))");
+            conditions.Add("(e.CreatedAt > @cursorCreated OR (e.CreatedAt = @cursorCreated AND e.id > @cursorId))");
             parameters["@cursorCreated"] = cursor.CreatedAt;
             parameters["@cursorId"] = cursor.EpisodeId;
         }
 
+        // Filter mapping
         if (filter != null)
         {
-            if (filter.SeriesId.HasValue)
+            var filterConditions = new[]
             {
-                sqlBuilder.Add("AND sr.media_id = @seriesId");
-                parameters["@seriesId"] = filter.SeriesId.Value;
-            }
+                (Value: filter.SeriesId, Column: "e.series_id", Operator: "=", Transform: (Func<object, object>?)null),
+                (Value: filter.SeasonId, Column: "e.season_id", Operator: "=", Transform: null)
+            };
 
-            if (filter.SeasonId.HasValue)
+            foreach (var (value, column, sqlOperator, transform) in filterConditions)
             {
-                sqlBuilder.Add("AND s.id = @seasonId");
-                parameters["@seasonId"] = filter.SeasonId.Value;
+                if (value != null)
+                {
+                    string paramName = $"@{column.Replace(".", "_")}{parameters.Count}";
+                    object finalValue = transform != null ? transform(value) : value;
+                    conditions.Add($"{column} {sqlOperator} {paramName}");
+                    parameters[paramName] = finalValue;
+                }
             }
         }
 
-        sqlBuilder.Add("ORDER BY e.CreatedAt, e.id");
+        if (conditions.Count > 0)
+            sqlBuilder.Append(" WHERE ").Append(string.Join(" AND ", conditions));
 
-        var sql = string.Join(" ", sqlBuilder);
+        sqlBuilder.Append(" ORDER BY e.CreatedAt, e.id");
 
+        var sql = sqlBuilder.ToString();
+
+        DateTime lastCreatedAt = DateTime.MinValue;
         var rows = await _sqlExecutor.QueryAsync(sql, parameters, reader =>
         {
             int id = reader.GetInt32(0);
-            int seasonId = reader.GetInt32(1);
+            int seriesId = reader.GetInt32(1);
             string title = reader.GetString(2);
-            int epNumber = reader.GetInt32(3);
+            int episodeNumber = reader.GetInt32(3);
+            lastCreatedAt = reader.GetDateTime(4);
 
-            return new SeriesEpisodeProjection(id, seasonId, title, epNumber);
+            return new SeriesEpisodeProjection(id, seriesId, title, episodeNumber);
         });
 
         var nextCursor = rows.Count > 0
-            ? new SeriesEpisodeCursor(rows[^1].EpisodeId, DateTime.Now)
+            ? new SeriesEpisodeCursor(rows[^1].EpisodeId, lastCreatedAt)
             : cursor ?? new SeriesEpisodeCursor(0, DateTime.MinValue);
 
         return (rows.ToArray(), nextCursor);
     }
-
     public async Task<RatingSnapshot> GetRatingSnapshotAsync(int seriesId)
     {
         const string sql = "SELECT rating_count, rating_sum FROM media WHERE id = @id";

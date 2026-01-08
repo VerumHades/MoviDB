@@ -1,0 +1,17 @@
+{
+  "title": "breaking bad",
+  "description": "a chemistry teacher turns to crime",
+  "genre_name": "Scifi",
+  "seasons": [
+    {
+      "title": "season 1",
+      "number": 1,
+      "episodes": [
+        {
+          "title": "pilot",
+          "episode_number": 1
+        }
+      ]
+    }
+  ]
+}

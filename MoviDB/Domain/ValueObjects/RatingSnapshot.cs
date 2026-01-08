@@ -21,4 +21,9 @@ public sealed class RatingSnapshot
     }
 
     public override int GetHashCode() => HashCode.Combine(RatingCount, AverageRating);
+    
+    public override string ToString()
+    {
+        return $"Rating: {AverageRating:F2} ({RatingCount} votes)";
+    }
 }

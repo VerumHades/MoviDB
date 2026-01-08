@@ -2,5 +2,6 @@
 
 public interface IUnitOfWorkFactory
 {
-    Task<IUnitOfWork> Create();
+    Task<T> ExecuteInTransactionAsync<T>(Func<IUnitOfWork, Task<T>> work);
+    Task ExecuteInTransactionAsync(Func<IUnitOfWork, Task> work);
 }

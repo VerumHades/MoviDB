@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Command that lists all registered commands and their parameters.
+/// Command that lists all registered commands and their parameters, including constraints and optional flags.
 /// </summary>
 public class HelpCommand : ICommand
 {
@@ -16,37 +16,44 @@ public class HelpCommand : ICommand
     }
 
     public string Name => "Help";
-    public string Description => "Lists all available commands with descriptions and parameters.";
+    public string Description => "Lists all available commands with descriptions, parameters, and constraints.";
 
-    public List<CommandParameter> GetParameters()
-    {
-        return new List<CommandParameter>();
-    }
+    public List<CommandParameter> GetParameters() => new();
 
-    public void Execute(Dictionary<string, object> parameterValues)
+    public void Execute(Dictionary<string, object> parameterValues, TextReader input, TextWriter output)
     {
-        Console.WriteLine("Available commands:\n");
+        output.WriteLine("Available commands:\n");
 
         foreach (var command in _registry.GetAllCommands())
         {
-            Console.WriteLine($"Command: {command.Name}");
-            Console.WriteLine($"Description: {command.Description}");
+            output.WriteLine($"Command: {command.Name}");
+            output.WriteLine($"Description: {command.Description}");
 
             var parameters = command.GetParameters();
             if (parameters.Count > 0)
             {
-                Console.WriteLine("Parameters:");
+                output.WriteLine("Parameters:");
                 foreach (var param in parameters)
                 {
-                    Console.WriteLine($"  - {param.Name} ({param.ParameterType.Name}): {param.Description}");
+                    var optionalText = param.IsOptional ? "Optional" : "Required";
+                    output.WriteLine($"  - {param.Name} ({param.ParameterType.Name}) [{optionalText}]: {param.Description}");
+
+                    if (param.Constraints.Count > 0)
+                    {
+                        output.WriteLine("    Constraints:");
+                        foreach (var constraint in param.Constraints)
+                        {
+                            output.WriteLine($"      - {constraint.Description}");
+                        }
+                    }
                 }
             }
             else
             {
-                Console.WriteLine("Parameters: None");
+                output.WriteLine("Parameters: None");
             }
 
-            Console.WriteLine();
+            output.WriteLine();
         }
     }
 }

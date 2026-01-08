@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using MoviDB.Application.Services;
 using MoviDB.Application.UnitOfWork;
+using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.Repositories;
 using MoviDB.Infrastructure;
 using MoviDB.Infrastructure.Database;
@@ -13,22 +15,43 @@ namespace MoviDB;
 
 class Program
 {
-    static void Main(string[] args)
+    static int Main(string[] args)
     {
-        var connectionFactory = new SqlConnectionFactory("DatabaseConfig.json");
+        var configLoader = new JsonFileConfigLoader("DatabaseConfig.json").LoadConfiguration();
+        var connectionFactory = new SqlConnectionFactory(configLoader);
+        
         var unitOfWorkFactory = new MSSQLUnitOfWorkFactory(connectionFactory);
-        var queryExecutor = new SqlServerAutocommitExecutor(connectionFactory.CreateOpenConnection());
+        
+        var queryExecutor = new SqlServerAutocommitExecutor(connectionFactory);
+        queryExecutor.QueryAsync<string>("SELECT * FROM dbo.vw_movie", new Dictionary<string, object>(), record => null).GetAwaiter().GetResult();
 
         var seriesQueryRepository = new SqlSeriesQueryRepository(queryExecutor);
+        var movieQueryRepository = new SqlMovieQueryRepository(queryExecutor);
         var genreQueryRepository = new SqlGenreQueryRepository(queryExecutor);
 
         var seriesService = new SeriesService(seriesQueryRepository, genreQueryRepository, unitOfWorkFactory);
-
+        var movieService = new MovieService(movieQueryRepository, genreQueryRepository, unitOfWorkFactory);
+        var genreService = new GenreService(genreQueryRepository, unitOfWorkFactory);
+        
         var registry = new CommandRegistry();
-        registry.RegisterCommand(new ImportSeriesCommand(seriesService));
-        registry.RegisterCommand(new HelpCommand(registry));
+        foreach (var command in
+             new List<ICommand> {
+                 new ImportSeriesCommand(seriesService),
+                 new HelpCommand(registry),
+                 new RegisterMovieCommand(movieService),
+                 new ListMoviesCommand(movieService),
+                 new CreateGenreCommand(genreService),
+                 new ListGenresCommand(genreService),
+                 new UpdateMovieCommand(movieService),
+                 new DeleteMovieCommand(movieService)
+             })
+        {
+            registry.RegisterCommand(command);
+        }
 
-        var console = new CommandConsole(registry);
+        var console = new CommandConsole(registry, Console.In, Console.Out);
         console.Run();
+
+        return 0;
     }
 }

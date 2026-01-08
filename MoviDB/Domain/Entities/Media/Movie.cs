@@ -2,17 +2,32 @@
 
 public sealed class Movie : Media
 {
-    public Genre Genre { get; }
-    public int DurationMinutes { get; }
-
-    public Movie(string title, string description, Genre genre, int durationMinutes) : base(title, description)
+    public Genre Genre
     {
-        Genre = genre;
-        DurationMinutes = durationMinutes;
+        get;
+        set => field = value ?? throw new ArgumentNullException(nameof(value), "Genre cannot be null");
+    }
+
+    public int DurationMinutes
+    {
+        get;
+        set
+        {
+            if (value <= 0)
+                throw new ArgumentException("Duration in minutes must be positive", nameof(value));
+            field = value;
+        }
     }
     
+    public Movie(string title, string description, Genre genre, int durationMinutes)
+        : base(title, description)
+    {
+        Genre = genre;               // uses guarded setter
+        DurationMinutes = durationMinutes; // uses guarded setter
+    }
+
     /// <summary>
-    /// Constructs a Movie instance from database values.
+    /// Hydrates a Movie from database values.
     /// </summary>
     public static Movie Hydrate(
         int mediaId,
@@ -23,10 +38,10 @@ public sealed class Movie : Media
         int durationMinutes)
     {
         var genre = Genre.Hydrate(genreId, genreName);
-        var movie = new Movie(title, description, genre, durationMinutes);
-
-        // Assign ID (assuming Media has a setter or internal constructor)
-        movie.Id = mediaId; // You may need to add this method in Media base class
+        var movie = new Movie(title, description, genre, durationMinutes)
+        {
+            Id = mediaId
+        };
 
         return movie;
     }

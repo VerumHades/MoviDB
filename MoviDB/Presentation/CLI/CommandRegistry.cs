@@ -11,18 +11,7 @@ public class CommandRegistry
     {
         _commands[command.Name] = command;
     }
-
-    public void ExecuteCommand(string name, Dictionary<string, object> parameters)
-    {
-        if (_commands.TryGetValue(name, out var command))
-        {
-            command.Execute(parameters);
-        }
-        else
-        {
-            throw new InvalidOperationException($"Command '{name}' not found.");
-        }
-    }
-
+    
+    public IReadOnlyDictionary<string, ICommand> Commands => _commands;
     public IEnumerable<ICommand> GetAllCommands() => _commands.Values;
 }

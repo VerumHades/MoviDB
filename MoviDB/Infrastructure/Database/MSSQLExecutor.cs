@@ -8,24 +8,24 @@ namespace MoviDB.Infrastructure;
 /// </summary>
 public sealed class SqlServerTransactionalExecutor : ISqlExecutor
 {
-    private readonly SqlConnection connection;
-    private readonly SqlTransaction transaction;
+    private readonly SqlConnection _connection;
+    private readonly SqlTransaction _transaction;
 
     public SqlServerTransactionalExecutor(SqlConnection connection, SqlTransaction transaction)
     {
-        this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-        this.transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
+        this._connection = connection ?? throw new ArgumentNullException(nameof(connection));
+        this._transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
     }
 
     public async Task ExecuteNonQueryAsync(string sql, IReadOnlyDictionary<string, object> parameters)
     {
-        using var command = CreateCommand(sql, parameters);
+        await using var command = CreateCommand(sql, parameters);
         await command.ExecuteNonQueryAsync();
     }
-
+//
     public async Task<T> ExecuteScalarAsync<T>(string sql, IReadOnlyDictionary<string, object> parameters)
     {
-        using var command = CreateCommand(sql, parameters);
+        await using var command = CreateCommand(sql, parameters);
         var result = await command.ExecuteScalarAsync();
 
         if (result == null || result is DBNull)
@@ -41,8 +41,8 @@ public sealed class SqlServerTransactionalExecutor : ISqlExecutor
     {
         var results = new List<T>();
 
-        using var command = CreateCommand(sql, parameters);
-        using var reader = await command.ExecuteReaderAsync();
+        await using var command = CreateCommand(sql, parameters);
+        await using var reader = await command.ExecuteReaderAsync();
 
         while (await reader.ReadAsync())
         {
@@ -54,14 +54,11 @@ public sealed class SqlServerTransactionalExecutor : ISqlExecutor
 
     private SqlCommand CreateCommand(string sql, IReadOnlyDictionary<string, object> parameters)
     {
-        var command = new SqlCommand(sql, connection, transaction);
+        var command = new SqlCommand(sql, _connection, _transaction);
 
-        if (parameters != null)
+        foreach (var (key, value) in parameters)
         {
-            foreach (var (key, value) in parameters)
-            {
-                command.Parameters.AddWithValue(key, value ?? DBNull.Value);
-            }
+            command.Parameters.AddWithValue(key, value);
         }
 
         return command;

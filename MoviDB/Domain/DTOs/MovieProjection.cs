@@ -7,5 +7,6 @@ public record MovieProjection(
     string Title,
     string Description,
     string GenreName,
+    int DurationMinutes,
     RatingSnapshot RatingSnapshot
 );

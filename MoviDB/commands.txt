@@ -1,0 +1,25 @@
+﻿CreateGenre name="SciFi"
+CreateGenre name="Drama"
+CreateGenre name="Comedy"
+CreateGenre name="Horror"
+
+RegisterMovie title="The Matrix" description="A computer hacker learns about the true nature of reality." genre="SciFi" durationMinutes=136
+RegisterMovie title="Inception" description="A thief who steals corporate secrets through dream-sharing technology." genre="SciFi" durationMinutes=148
+RegisterMovie title="Interstellar" description="Explorers travel through a wormhole in space to save humanity." genre="SciFi" durationMinutes=169
+RegisterMovie title="Blade Runner 2049" description="A young blade runner uncovers a long-buried secret that could plunge society into chaos." genre="SciFi" durationMinutes=164
+RegisterMovie title="The Godfather" description="The aging patriarch of an organized crime dynasty transfers control to his son." genre="Drama" durationMinutes=175
+RegisterMovie title="Forrest Gump" description="The story of a man with a low IQ who achieves extraordinary things in life." genre="Drama" durationMinutes=142
+RegisterMovie title="The Shawshank Redemption" description="Two imprisoned men bond over several years, finding solace and eventual redemption." genre="Drama" durationMinutes=142
+RegisterMovie title="Parasite" description="A poor family schemes to become employed by a wealthy family." genre="Drama" durationMinutes=132
+RegisterMovie title="Superbad" description="Two co-dependent high school seniors are forced to deal with separation anxiety." genre="Comedy" durationMinutes=113
+RegisterMovie title="The Hangover" description="Three friends lose the groom at a bachelor party in Las Vegas and must retrace their steps." genre="Comedy" durationMinutes=100
+RegisterMovie title="Step Brothers" description="Two middle-aged men become stepbrothers and struggle to coexist." genre="Comedy" durationMinutes=98
+RegisterMovie title="Anchorman" description="A top-rated news anchor in the 1970s struggles with a new female co-anchor." genre="Comedy" durationMinutes=94
+RegisterMovie title="The Conjuring" description="Paranormal investigators help a family terrorized by a dark presence." genre="Horror" durationMinutes=112
+RegisterMovie title="It" description="A group of kids face the evil entity haunting their town every 27 years." genre="Horror" durationMinutes=135
+RegisterMovie title="A Quiet Place" description="A family must live in silence while hiding from creatures that hunt by sound." genre="Horror" durationMinutes=90
+RegisterMovie title="Get Out" description="A young African-American man uncovers disturbing secrets when meeting his white girlfriend's family." genre="Horror" durationMinutes=104
+RegisterMovie title="Mad Max: Fury Road" description="In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler." genre="SciFi" durationMinutes=120
+RegisterMovie title="Guardians of the Galaxy" description="A group of intergalactic criminals must save the universe." genre="SciFi" durationMinutes=121
+RegisterMovie title="Jojo Rabbit" description="A young boy in Nazi Germany discovers his mother is hiding a Jewish girl in their home." genre="Comedy" durationMinutes=108
+RegisterMovie title="Hereditary" description="A family is haunted after the death of their secretive grandmother." genre="Horror" durationMinutes=127

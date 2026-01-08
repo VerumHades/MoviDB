@@ -1,4 +1,5 @@
-﻿using MoviDB.Application.UnitOfWork;
+﻿using MoviDB.Application.DTOs;
+using MoviDB.Application.UnitOfWork;
 using MoviDB.Domain.DTOs;
 using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.Exceptions;
@@ -27,22 +28,14 @@ public class MovieService
     {
         var genre = await _genreRepository.GetByNameAsync(genreName);
         if (genre == null)
-            throw new GenreNotFoundException("Genre not found");
-        
-        await using var uow = await _unitOfWorkFactory.Create();
+            throw new GenreNotFoundException(genreName);
 
-        try
+        return await _unitOfWorkFactory.ExecuteInTransactionAsync(async uow =>
         {
             var movie = new Movie(title, description, genre, durationMinutes);
             var persisted = await uow.Movies.Create(movie);
-            await uow.CommitAsync();
             return persisted;
-        }
-        catch
-        {
-            await uow.RollbackAsync();
-            throw;
-        }
+        });
     }
     
     public async Task<(MovieProjection[] Movies, MovieCursor? NextCursor)> GetNextBatchOfAllAsync(
@@ -51,5 +44,57 @@ public class MovieService
         MovieFilter? filter = null)
     {
         return await _movieQueryRepository.GetNextBatchOfAllAsync(batchSize, cursor, filter);
+    }
+    
+    public async Task<Movie> UpdateMovieAsync(string movieTitle, MovieUpdateDto updateDto)
+    {
+        if (string.IsNullOrWhiteSpace(movieTitle))
+            throw new ArgumentException("Movie title cannot be empty.", nameof(movieTitle));
+
+        if (updateDto == null)
+            throw new ArgumentNullException(nameof(updateDto));
+        
+        var movie = await _movieQueryRepository.GetByTitleAsync(movieTitle);
+        if (movie == null)
+            throw new MovieNotFoundException(movieTitle);
+
+        Genre? newGenre = null;
+        if (!string.IsNullOrWhiteSpace(updateDto.GenreName))
+        {
+            newGenre = await _genreRepository.GetByNameAsync(updateDto.GenreName);
+            if (newGenre == null)
+                throw new GenreNotFoundException(updateDto.GenreName);
+        }
+        
+        if (!string.IsNullOrWhiteSpace(updateDto.Title))
+            movie.Title = updateDto.Title;
+
+        if (!string.IsNullOrWhiteSpace(updateDto.Description))
+            movie.Description = updateDto.Description;
+
+        if (newGenre != null)
+            movie.Genre = newGenre;
+
+        if (updateDto.DurationMinutes.HasValue)
+            movie.DurationMinutes = updateDto.DurationMinutes.Value;
+        
+        return await _unitOfWorkFactory.ExecuteInTransactionAsync(async uow =>
+            await uow.Movies.Update(movie)
+        );
+    }
+    
+    public async Task DeleteMovieByTitleAsync(string movieTitle)
+    {
+        if (string.IsNullOrWhiteSpace(movieTitle))
+            throw new ArgumentException("Movie title cannot be empty.", nameof(movieTitle));
+
+        var movie = await _movieQueryRepository.GetByTitleAsync(movieTitle);
+        if (movie == null)
+            throw new MovieNotFoundException(movieTitle);
+
+        await _unitOfWorkFactory.ExecuteInTransactionAsync(async uow =>
+        {
+            await uow.Movies.Delete(movie.Id);
+        });
     }
 }
