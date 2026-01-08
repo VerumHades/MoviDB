@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MoviDB")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+027874e1dfeed4d7ec829493d548ca58f8c3abe3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3bc3929b08b8ca90762bb7b4b939109098c21fc9")]
 [assembly: System.Reflection.AssemblyProductAttribute("MoviDB")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MoviDB")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

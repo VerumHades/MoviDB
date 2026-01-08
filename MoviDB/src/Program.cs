@@ -44,7 +44,6 @@ class Program
         var unitOfWorkFactory = new MSSQLUnitOfWorkFactory(connectionFactory);
         
         var queryExecutor = new SqlServerAutocommitExecutor(connectionFactory);
-        queryExecutor.QueryAsync<string>("SELECT * FROM dbo.vw_movie", new Dictionary<string, object>(), record => null).GetAwaiter().GetResult();
 
         var seriesQueryRepository = new SqlSeriesQueryRepository(queryExecutor);
         var movieQueryRepository = new SqlMovieQueryRepository(queryExecutor);
