@@ -68,14 +68,14 @@ Manual schema creation is **not supported**.
 
 1. Open **SQL Server Management Studio**
 2. Connect to your SQL Server instance
-3. Open the script located at:
+3. Open and execute the script located at:
 
    ```
    sql/setup.sql
    ```
 
 5. Setup user accounts with permission
-6. Open and execute the script located at:
+6. Open the script located at:
 
    ```
    sql/credentials.sql
