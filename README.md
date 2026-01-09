@@ -75,7 +75,7 @@ Manual schema creation is **not supported**.
    ```
 
 5. Setup user accounts with permission
-6. Open the script located at:
+6. Open and execute the script located at:
 
    ```
    sql/credentials.sql
