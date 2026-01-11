@@ -6,7 +6,7 @@ It provides an interactive **CLI (command-line interface)** for managing movies,
 The application is designed for educational and testing purposes and supports structured data import, paging, and validation-driven commands.
 
 Author: **Filip Heger**
-
+> Note: For testers, test cases can be found in the tests directory.
 ---
 
 ## Features
