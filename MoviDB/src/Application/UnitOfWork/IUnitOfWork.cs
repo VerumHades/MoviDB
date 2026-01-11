@@ -9,7 +9,11 @@ public interface IUnitOfWork: IAsyncDisposable, IDisposable
     IGenreCommandRepository Genres { get; }
     
     IReviewCommandRepository Reviews { get; }
-
+    
+    IUserCommandRepository Users { get; }
+    
+    IUserLibraryCommandRepository UsersLibrary { get; }
+    
     Task CommitAsync();
     Task RollbackAsync();
 }

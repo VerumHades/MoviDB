@@ -10,6 +10,7 @@ using MoviDB.Infrastructure.Repositories;
 using MoviDB.Infrastructure.Serialization;
 using MoviDB.Presentation.CLI;
 using MoviDB.Presentation.CLI.Commands;
+using MoviDB.Presentation.CLI.Commands.User;
 
 namespace MoviDB;
 
@@ -48,10 +49,18 @@ class Program
         var seriesQueryRepository = new SqlSeriesQueryRepository(queryExecutor);
         var movieQueryRepository = new SqlMovieQueryRepository(queryExecutor);
         var genreQueryRepository = new SqlGenreQueryRepository(queryExecutor);
+        var userQueryRepository = new SqlUserQueryRepository(queryExecutor);
 
         var seriesService = new SeriesService(seriesQueryRepository, genreQueryRepository, unitOfWorkFactory);
         var movieService = new MovieService(movieQueryRepository, genreQueryRepository, unitOfWorkFactory);
         var genreService = new GenreService(genreQueryRepository, unitOfWorkFactory);
+        var userManagmentService = new UserManagmentService(userQueryRepository, unitOfWorkFactory);
+        var userService = new UserService(unitOfWorkFactory, userQueryRepository, movieQueryRepository,
+            seriesQueryRepository);
+
+        var movieReviewService = new MovieReviewService(movieQueryRepository, userQueryRepository, unitOfWorkFactory);
+        var seriesReviewService =
+            new SeriesReviewService(seriesQueryRepository, userQueryRepository, unitOfWorkFactory);
         
         var registry = new CommandRegistry();
         foreach (var command in
@@ -59,11 +68,33 @@ class Program
                  new ImportSeriesCommand(seriesService),
                  new HelpCommand(registry),
                  new RegisterMovieCommand(movieService),
-                 new ListMoviesCommand(movieService),
+                 
+                 MovieCommands.CreateListMoviesCommand(movieService),
+                 SeriesCommands.ListSeriesCommand(seriesService),
+                 
                  new CreateGenreCommand(genreService),
                  new ListGenresCommand(genreService),
                  new UpdateMovieCommand(movieService),
-                 new DeleteMovieCommand(movieService)
+                 new DeleteMovieCommand(movieService),
+                 
+                 UserManagmentCommands.CreateListUsersCommand(userManagmentService),
+                 UserManagmentCommands.CreateUserCommand(userManagmentService),
+                 UserManagmentCommands.DeleteUserCommand(userManagmentService),
+                 
+                 UserCommands.AddMovieToLibraryCommand(userService),
+                 UserCommands.AddSeriesToLibraryCommand(userService),
+                 UserCommands.MarkMovieWatchedCommand(userService),
+                 UserCommands.MarkSeriesWatchedCommand(userService),
+                 
+                 // Movie reviews
+                 MovieReviewCommands.AddMovieReviewCommand(movieReviewService),
+                 MovieReviewCommands.UpdateMovieReviewCommand(movieReviewService),
+                 MovieReviewCommands.RemoveMovieReviewCommand(movieReviewService),
+
+                 // Series reviews
+                 SeriesReviewCommands.AddSeriesReviewCommand(seriesReviewService),
+                 SeriesReviewCommands.UpdateSeriesReviewCommand(seriesReviewService),
+                 SeriesReviewCommands.RemoveSeriesReviewCommand(seriesReviewService),
              })
         {
             registry.RegisterCommand(command);

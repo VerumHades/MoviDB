@@ -6,6 +6,7 @@ using MoviDB.Domain.Entities.Media;
 using MoviDB.Domain.Exceptions;
 using MoviDB.Domain.Repositories;
 using MoviDB.Domain.ValueObjects;
+using MoviDB.Infrastructure.Database;
 
 namespace MoviDB.Infrastructure.Repositories;
 
@@ -59,61 +60,10 @@ public class SqlMovieQueryRepository(ISqlExecutor executor) : Repository(executo
         MovieCursor? cursor = null,
         MovieFilter? filter = null)
     {
-        var sqlBuilder = new StringBuilder($"SELECT TOP {batchSize} * FROM vw_movie");
-        var parameters = new Dictionary<string, object>
-        {
-            
-        };
-
-        var conditions = new List<string>();
-
-        // Cursor condition
-        if (cursor != null)
-        {
-            conditions.Add("(created_at > @cursorCreated OR (created_at = @cursorCreated AND media_id > @cursorId))");
-            parameters["@cursorCreated"] = cursor.CreatedAt;
-            parameters["@cursorId"] = cursor.Id;
-        }
-
-        // Filter mapping
-        if (filter != null)
-        {
-            var filterConditions = new[]
-            {
-                (Value: (object?)filter.TitleContains, Column: "title", Operator: "LIKE", Transform: (Func<object, object>)(v => $"%{v}%")),
-                (Value: filter.GenreId, Column: "genre_id", Operator: "=", Transform: null),
-                (Value: filter.MinRating, Column: "rating", Operator: ">=", Transform: null),
-                (Value: filter.MaxRating, Column: "rating", Operator: "<=", Transform: null),
-                (Value: filter.MinDuration, Column: "duration_minutes", Operator: ">=", Transform: null),
-                (Value: filter.MaxDuration, Column: "duration_minutes", Operator: "<=", Transform: null),
-                (Value: filter.CreatedAfter, Column: "created_at", Operator: ">=", Transform: null),
-                (Value: filter.CreatedBefore, Column: "created_at", Operator: "<=", Transform: null)
-            };
-
-            foreach (var (value, column, sqlOperator, transform) in filterConditions)
-            {
-                if (value != null && !(value is string s && string.IsNullOrWhiteSpace(s)))
-                {
-                    string paramName = $"@{column}{parameters.Count}";
-                    object finalValue = transform != null ? transform(value) : value;
-                    conditions.Add($"{column} {sqlOperator} {paramName}");
-                    parameters[paramName] = finalValue;
-                }
-            }
-        }
-
-        if (conditions.Count > 0)
-        {
-            sqlBuilder.Append(" WHERE ");
-            sqlBuilder.Append(string.Join(" AND ", conditions));
-        }
-
-        sqlBuilder.Append(" ORDER BY created_at, media_id");
-
-        var sql = sqlBuilder.ToString();
+        var (filterClause, parameters) = FilterMapper.BuildQueryClause(cursor?.CreatedAt, cursor?.Id, filter, MovieFilterMappings.Mappings);
 
         DateTime createdAt = new DateTime();
-        var rows = await _sqlExecutor.QueryAsync(sql, parameters, reader =>
+        var rows = await _sqlExecutor.QueryAsync($"SELECT TOP {batchSize} * FROM vw_movie {filterClause}", parameters, reader =>
         {
             int id = reader.GetInt32(0);
             string title = reader.GetString(1);

@@ -31,6 +31,32 @@ public class SqlSeriesQueryRepository(ISqlExecutor sqlExecutor): Repository(sqlE
         return rows.FirstOrDefault();
     }
 
+    public async Task<Series?> GetByTitleAsync(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Title cannot be null or empty.", nameof(title));
+
+        const string sql = "SELECT * FROM vw_series WHERE title = @title";
+
+        var parameters = new Dictionary<string, object>
+        {
+            ["@title"] = title
+        };
+
+        var result = await _sqlExecutor.QueryAsync(sql, parameters, reader =>
+        {
+            int id = reader.GetInt32(0);
+            string title = reader.GetString(1);
+            string description = reader.GetString(2);
+            int genreId = reader.GetInt32(3);
+            string genreName = reader.GetString(4);
+
+            return Series.Hydrate(id, title, description, genreId, genreName);
+        });
+
+        return result.FirstOrDefault();
+    }
+
     public async Task<(SeriesProjection[], SeriesCursor)> GetNextBatchAsync(
         int batchSize,
         SeriesCursor? cursor = null,
@@ -47,7 +73,7 @@ public class SqlSeriesQueryRepository(ISqlExecutor sqlExecutor): Repository(sqlE
         // Cursor condition
         if (cursor != null)
         {
-            conditions.Add("(CreatedAt > @cursorCreated OR (CreatedAt = @cursorCreated AND series_id > @cursorId))");
+            conditions.Add("(CreatedAt > @cursorCreated OR (CreatedAt = @cursorCreated AND id > @cursorId))");
             parameters["@cursorCreated"] = cursor.CreatedAt;
             parameters["@cursorId"] = cursor.SeriesId;
         }
@@ -108,7 +134,7 @@ public class SqlSeriesQueryRepository(ISqlExecutor sqlExecutor): Repository(sqlE
 
     public async Task<List<Season>> GetSeasonsAsync(int seriesId)
     {
-        const string sql = "SELECT id, title, number FROM season WHERE series_id = @seriesId ORDER BY number";
+        const string sql = "SELECT id, title, number FROM season WHERE id = @seriesId ORDER BY number";
 
         var parameters = new Dictionary<string, object>
         {
@@ -132,7 +158,7 @@ public class SqlSeriesQueryRepository(ISqlExecutor sqlExecutor): Repository(sqlE
         SeriesEpisodeCursor? cursor = null,
         SeriesEpisodeFilter? filter = null)
     {
-        var sqlBuilder = new StringBuilder($"SELECT TOP {batchSize} id, series_id, title, episode_number, CreatedAt FROM episode e");
+        var sqlBuilder = new StringBuilder($"SELECT TOP {batchSize} id, id, title, episode_number, CreatedAt FROM episode e");
         var parameters = new Dictionary<string, object>
         {
 
@@ -153,7 +179,7 @@ public class SqlSeriesQueryRepository(ISqlExecutor sqlExecutor): Repository(sqlE
         {
             var filterConditions = new[]
             {
-                (Value: filter.SeriesId, Column: "e.series_id", Operator: "=", Transform: (Func<object, object>?)null),
+                (Value: filter.SeriesId, Column: "e.id", Operator: "=", Transform: (Func<object, object>?)null),
                 (Value: filter.SeasonId, Column: "e.season_id", Operator: "=", Transform: null)
             };
 
@@ -264,7 +290,7 @@ public class SqlSeriesCommandRepository(ISqlExecutor sqlExecutor) : Repository(s
     public async Task<Season> AddSeasonAsync(Season season)
     {
         const string sql = @"
-        insert into season (series_id, title, number)
+        insert into season (id, title, number)
         output inserted.id
         values (@seriesId, @title, @number)";
 

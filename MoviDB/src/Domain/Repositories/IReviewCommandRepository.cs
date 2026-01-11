@@ -21,5 +21,5 @@ public interface IReviewCommandRepository
     /// <summary>
     /// Removes a review by id.
     /// </summary>
-    Task RemoveAsync(int reviewId, int userId);
+    Task RemoveAsync(int mediaId, int userId);
 }

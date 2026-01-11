@@ -42,11 +42,11 @@ public sealed class SqlUserLibraryCommandRepository(ISqlExecutor executor) : Rep
         await _sqlExecutor.ExecuteNonQueryAsync(sql, parameters);
     }
 
-    public async Task MarkWatchedAsync(int userId, int mediaId)
+    public async Task MarkWatchedStateAsync(int userId, int mediaId, bool isWatched)
     {
         const string sql = @"
             UPDATE library_entry
-            SET watched = 1
+            SET watched = {isWatched ? 1 : 0}
             WHERE user_id = @userId AND media_id = @mediaId;
         ";
 

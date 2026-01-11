@@ -11,3 +11,5 @@ public record SeriesCursor(int SeriesId, DateTime CreatedAt);
 /// Cursor for paging through episodes of a series.
 /// </summary>
 public record SeriesEpisodeCursor(int EpisodeId, DateTime CreatedAt);
+
+public record UserCursor(int Id, DateTime CreatedAt);

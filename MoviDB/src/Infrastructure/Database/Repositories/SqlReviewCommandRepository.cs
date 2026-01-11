@@ -54,7 +54,7 @@ public class SqlReviewCommandRepository : IReviewCommandRepository
         await _sqlExecutor.ExecuteNonQueryAsync(sql, parameters);
     }
 
-    public async Task RemoveAsync(int reviewId, int userId)
+    public async Task RemoveAsync(int mediaId, int userId)
     {
         const string sql = @"
             DELETE FROM review
@@ -63,7 +63,7 @@ public class SqlReviewCommandRepository : IReviewCommandRepository
 
         var parameters = new Dictionary<string, object>
         {
-            ["@id"] = reviewId,
+            ["@id"] = mediaId,
             ["@user_id"] = userId
         };
 

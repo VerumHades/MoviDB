@@ -57,19 +57,16 @@ public class MSSQLUnitOfWorkFactory : IUnitOfWorkFactory
             throw new InvalidOperationException("Expected SqlTransaction.");
         
         var sqlExecutor = new SqlServerTransactionalExecutor(connection, sqlTransaction);
-        
-        var moviesRepository = new SqlMovieCommandRepository(sqlExecutor);
-        var seriesRepository = new SqlSeriesCommandRepository(sqlExecutor);
-        var genresRepository = new SqlGenreCommandRepository(sqlExecutor);
-        var reviewsRepository = new SqlReviewCommandRepository(sqlExecutor);
-        
+
         return new MSSQLUnitOfWork(
             connection,
             sqlTransaction,
-            moviesRepository,
-            seriesRepository,
-            genresRepository,
-            reviewsRepository
+            new SqlMovieCommandRepository(sqlExecutor),
+            new SqlSeriesCommandRepository(sqlExecutor),
+            new SqlGenreCommandRepository(sqlExecutor),
+            new SqlReviewCommandRepository(sqlExecutor),
+            new SqlUserCommandRepository(sqlExecutor),
+            new SqlUserLibraryCommandRepository(sqlExecutor)
         );
     }
 }

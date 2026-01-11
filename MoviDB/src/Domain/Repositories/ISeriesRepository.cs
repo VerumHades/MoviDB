@@ -11,6 +11,8 @@ public interface ISeriesQueryRepository
     /// Episodes are not loaded in memory.
     /// </summary>
     Task<Series?> GetByIdAsync(int mediaId);
+    
+    Task<Series?> GetByTitleAsync(string title);
     Task<(SeriesProjection[],SeriesCursor)> GetNextBatchAsync(int batchSize, SeriesCursor? cursor = null, SeriesFilter? filter = null);
     Task<List<Season>> GetSeasonsAsync(int seriesId);
     Task<(SeriesEpisodeProjection[],SeriesEpisodeCursor)> GetNextBatchEpisodesAsync(int batchSize, SeriesEpisodeCursor? cursor = null, SeriesEpisodeFilter? filter = null);

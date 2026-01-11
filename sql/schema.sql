@@ -1,118 +1,152 @@
--- =============================================
--- MoviesDB Database Setup (Drop & Recreate)
--- Fully reproducible schema for development/testing
--- =============================================
--- ==========================
--- Create Tables
--- ==========================
+set nocount on;
+set xact_abort on;
 
-CREATE TABLE dbo.[user] (
-                            id INT IDENTITY(1,1) PRIMARY KEY,
-                            username NVARCHAR(255) NOT NULL UNIQUE,
-                            password_hash NVARCHAR(255) NOT NULL,
-                            role NVARCHAR(20) NOT NULL CHECK (role IN ('normal', 'moderator')),
-                            created_at DATETIME NOT NULL DEFAULT GETDATE()
-);
+begin try
+begin transaction;
 
-CREATE TABLE dbo.genre (
-                           id INT IDENTITY(1,1) PRIMARY KEY,
-                           name NVARCHAR(255) NOT NULL UNIQUE
-);
-
-CREATE TABLE dbo.media (
-                           id INT IDENTITY(1,1) PRIMARY KEY,
-                           created_at DATETIME NOT NULL DEFAULT GETDATE(),
-                           title NVARCHAR(255) NOT NULL,
-                           description NVARCHAR(300) NULL,
-                           type NVARCHAR(20) NOT NULL CHECK (type IN ('movie', 'series')),
-                           rating_count INT NOT NULL DEFAULT 0 CHECK (rating_count >= 0),
-                           rating_sum FLOAT NOT NULL DEFAULT 0 CHECK (rating_sum >= 0)
-);
-
-CREATE TABLE dbo.movie (
-                           media_id INT PRIMARY KEY REFERENCES dbo.media(id) ON DELETE CASCADE,
-                           genre_id INT NOT NULL REFERENCES dbo.genre(id),
-                           duration_minutes INT NULL CHECK (duration_minutes > 0)
-);
-
-CREATE TABLE dbo.series (
-                            media_id INT PRIMARY KEY REFERENCES dbo.media(id) ON DELETE CASCADE,
-                            genre_id INT NOT NULL REFERENCES dbo.genre(id)
-);
-
-CREATE TABLE dbo.season (
-                            id INT IDENTITY(1,1) PRIMARY KEY,
-                            series_id INT NOT NULL REFERENCES dbo.series(media_id) ON DELETE CASCADE,
-                            title NVARCHAR(255) NOT NULL,
-                            number INT NOT NULL CHECK (number > 0),
-                            CONSTRAINT uq_season_perseries UNIQUE (series_id, number)
-);
-
-CREATE TABLE dbo.episode (
-                             id INT IDENTITY(1,1) PRIMARY KEY,
-                             season_id INT NOT NULL REFERENCES dbo.season(id) ON DELETE CASCADE,
-                             title NVARCHAR(255) NOT NULL,
-                             episode_number INT NOT NULL CHECK (episode_number > 0),
-                             created_at DATETIME NOT NULL DEFAULT GETDATE(),
-                             CONSTRAINT uq_episode_perseason UNIQUE (season_id, episode_number)
-);
-
-CREATE TABLE dbo.library_entry (
-                                   media_id INT NOT NULL REFERENCES dbo.media(id),
-                                   user_id INT NOT NULL REFERENCES dbo.[user](id),
-                                   watched BIT NOT NULL DEFAULT 0,
-                                   created_at DATETIME NOT NULL DEFAULT GETDATE(),
-                                   CONSTRAINT pk_library_entry PRIMARY KEY (media_id, user_id)
-);
-
-CREATE TABLE dbo.review (
-                            id INT IDENTITY(1,1) PRIMARY KEY,
-                            media_id INT NOT NULL REFERENCES dbo.media(id),
-                            user_id INT NOT NULL REFERENCES dbo.[user](id),
-                            title NVARCHAR(255) NOT NULL,
-                            content NVARCHAR(MAX) NOT NULL,
-                            rating FLOAT NOT NULL CHECK (rating >= 0 AND rating <= 5),
-                            created_at DATETIME NOT NULL DEFAULT GETDATE(),
-                            CONSTRAINT uq_review_peruser UNIQUE (media_id, user_id)
-);
-GO
+    -- ==========================
+    -- drop triggers
+    -- ==========================
+drop trigger if exists trg_review_after_insert;
+drop trigger if exists trg_review_after_update;
+drop trigger if exists trg_review_after_delete;
 
 -- ==========================
--- Create Views
+-- drop views
 -- ==========================
-CREATE VIEW dbo.vw_movie AS
-SELECT
-    m.id AS media_id,
+drop view if exists vw_movie;
+drop view if exists vw_series;
+
+-- ==========================
+-- drop tables (reverse dependency order)
+-- ==========================
+drop table if exists review;
+drop table if exists library_entry;
+drop table if exists episode;
+drop table if exists season;
+drop table if exists series;
+drop table if exists movie;
+drop table if exists media;
+drop table if exists genre;
+drop table if exists [user];
+
+-- ==========================
+-- create tables
+-- ==========================
+
+create table [user] (
+                        id int identity(1,1) primary key,
+    username nvarchar(255) not null unique,
+    password_hash nvarchar(255) not null,
+    role nvarchar(20) not null check (role in ('normal', 'moderator')),
+    created_at datetime not null default getdate()
+    );
+
+create table genre (
+                       id int identity(1,1) primary key,
+                       name nvarchar(255) not null unique
+);
+
+create table media (
+                       id int identity(1,1) primary key,
+                       created_at datetime not null default getdate(),
+                       title nvarchar(255) not null,
+                       description nvarchar(300) null,
+                       type nvarchar(20) not null check (type in ('movie', 'series')),
+                       rating_count int not null default 0 check (rating_count >= 0),
+                       rating_sum float not null default 0 check (rating_sum >= 0)
+);
+
+create table movie (
+                       media_id int primary key references media(id) on delete cascade,
+                       genre_id int not null references genre(id),
+                       duration_minutes int null check (duration_minutes > 0)
+);
+
+create table series (
+                        media_id int primary key references media(id) on delete cascade,
+                        genre_id int not null references genre(id)
+);
+
+create table season (
+                        id int identity(1,1) primary key,
+                        series_id int not null references series(media_id) on delete cascade,
+                        title nvarchar(255) not null,
+                        number int not null check (number > 0),
+                        constraint uq_season_perseries unique (series_id, number)
+);
+
+create table episode (
+                         id int identity(1,1) primary key,
+                         season_id int not null references season(id) on delete cascade,
+                         title nvarchar(255) not null,
+                         episode_number int not null check (episode_number > 0),
+                         created_at datetime not null default getdate(),
+                         constraint uq_episode_perseason unique (season_id, episode_number)
+);
+
+create table library_entry (
+                               media_id int not null references media(id),
+                               user_id int not null references [user](id),
+                               watched bit not null default 0,
+                               created_at datetime not null default getdate(),
+                               constraint pk_library_entry primary key (media_id, user_id)
+);
+
+create table review (
+                        id int identity(1,1) primary key,
+                        media_id int not null references media(id),
+                        user_id int not null references [user](id),
+                        title nvarchar(255) not null,
+                        content nvarchar(max) not null,
+                        rating float not null check (rating >= 0 and rating <= 5),
+                        created_at datetime not null default getdate(),
+                        constraint uq_review_peruser unique (media_id, user_id)
+);
+
+-- ==========================
+-- create views
+-- ==========================
+
+create view vw_movie as
+select
+    m.id as id,
     m.title,
     m.description,
-    g.id AS genre_id,
-    g.name AS genre_name,
+    g.id as genre_id,
+    g.name as genre_name,
     m.rating_count,
     m.rating_sum,
-    CASE WHEN m.rating_count > 0 THEN m.rating_sum / m.rating_count ELSE 0 END AS rating,
+    case
+        when m.rating_count > 0 then m.rating_sum / m.rating_count
+        else 0
+        end as rating,
     mv.duration_minutes,
     m.created_at
-FROM dbo.media m
-         INNER JOIN dbo.movie mv ON mv.media_id = m.id
-         INNER JOIN dbo.genre g ON g.id = mv.genre_id
-WHERE m.type = 'movie';
+from media m
+         inner join movie mv on mv.media_id = m.id
+         inner join genre g on g.id = mv.genre_id
+where m.type = 'movie';
 
-CREATE VIEW dbo.vw_series AS
-SELECT
-    s.media_id AS series_id,
-    m.title AS title,
-    m.description AS description,
-    g.name AS genre_name,
-    COUNT(se.id) AS season_count,
-    m.rating_count AS rating_count,
-    m.rating_sum AS rating_sum,
-    CASE WHEN m.rating_count > 0 THEN m.rating_sum / m.rating_count ELSE 0 END AS rating,
-    m.created_at AS created_at
-FROM dbo.series s
-         INNER JOIN dbo.media m ON s.media_id = m.id
-         INNER JOIN dbo.genre g ON s.genre_id = g.id
-         LEFT JOIN dbo.season se ON se.series_id = s.media_id
-GROUP BY
+create view vw_series as
+select
+    s.media_id as id,
+    m.title,
+    m.description,
+    g.name as genre_name,
+    count(se.id) as season_count,
+    m.rating_count,
+    m.rating_sum,
+    case
+        when m.rating_count > 0 then m.rating_sum / m.rating_count
+        else 0
+        end as rating,
+    m.created_at
+from series s
+         inner join media m on s.media_id = m.id
+         inner join genre g on s.genre_id = g.id
+         left join season se on se.series_id = s.media_id
+group by
     s.media_id,
     m.title,
     m.description,
@@ -120,52 +154,61 @@ GROUP BY
     m.rating_count,
     m.rating_sum,
     m.created_at;
-GO
 
 -- ==========================
--- Create Triggers
+-- create triggers
 -- ==========================
-CREATE TRIGGER trg_review_after_insert
-    ON dbo.review
-    AFTER INSERT
-    AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE media
-    SET
-        media.rating_count = media.rating_count + 1,
-        media.rating_sum = media.rating_sum + inserted_review.rating
-    FROM dbo.media AS media
-             INNER JOIN inserted AS inserted_review ON media.id = inserted_review.media_id;
-END;
-GO
 
-CREATE TRIGGER trg_review_after_update
-    ON dbo.review
-    AFTER UPDATE
-    AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE media
-    SET media.rating_sum = media.rating_sum - deleted_review.rating + inserted_review.rating
-    FROM dbo.media AS media
-             INNER JOIN inserted AS inserted_review ON media.id = inserted_review.media_id
-             INNER JOIN deleted AS deleted_review ON inserted_review.id = deleted_review.id
-    WHERE inserted_review.rating <> deleted_review.rating;
-END;
-GO
+create trigger trg_review_after_insert
+    on review
+    after insert
+    as
+begin
+        set nocount on;
 
-CREATE TRIGGER trg_review_after_delete
-    ON dbo.review
-    AFTER DELETE
-    AS
-BEGIN
-    SET NOCOUNT ON;
-    UPDATE media
-    SET
-        media.rating_count = media.rating_count - 1,
-        media.rating_sum = media.rating_sum - deleted_review.rating
-    FROM dbo.media AS media
-             INNER JOIN deleted AS deleted_review ON media.id = deleted_review.media_id;
-END;
-GO
+update m
+set
+    m.rating_count = m.rating_count + 1,
+    m.rating_sum = m.rating_sum + i.rating
+    from media m
+            inner join inserted i on m.id = i.media_id;
+end;
+
+create trigger trg_review_after_update
+    on review
+    after update
+              as
+begin
+        set nocount on;
+
+update m
+set m.rating_sum = m.rating_sum - d.rating + i.rating
+    from media m
+            inner join inserted i on m.id = i.media_id
+    inner join deleted d on d.id = i.id
+where i.rating <> d.rating;
+end;
+
+create trigger trg_review_after_delete
+    on review
+    after delete
+as
+begin
+        set nocount on;
+
+update m
+set
+    m.rating_count = m.rating_count - 1,
+    m.rating_sum = m.rating_sum - d.rating
+    from media m
+            inner join deleted d on m.id = d.media_id;
+end;
+
+commit transaction;
+end try
+begin catch
+if @@trancount > 0
+        rollback transaction;
+
+    throw;
+end catch;

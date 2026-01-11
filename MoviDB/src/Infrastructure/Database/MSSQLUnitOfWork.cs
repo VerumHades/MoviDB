@@ -19,6 +19,9 @@ public sealed class MSSQLUnitOfWork : IUnitOfWork
     public ISeriesCommandRepository Series { get; }
     public IGenreCommandRepository Genres { get; }
     public IReviewCommandRepository Reviews { get; }
+    
+    public IUserCommandRepository Users { get; }
+    public IUserLibraryCommandRepository UsersLibrary { get; }
 
     /// <summary>
     /// Initializes a new instance of MSSQLUnitOfWork.
@@ -30,7 +33,9 @@ public sealed class MSSQLUnitOfWork : IUnitOfWork
         IMovieCommandRepository movies,
         ISeriesCommandRepository series,
         IGenreCommandRepository genres,
-        IReviewCommandRepository reviews)
+        IReviewCommandRepository reviews,
+        IUserCommandRepository users,
+        IUserLibraryCommandRepository usersLibrary)
     {
         _connection = connection;
         _transaction = transaction ;
@@ -39,6 +44,8 @@ public sealed class MSSQLUnitOfWork : IUnitOfWork
         Series = series;
         Genres = genres;
         Reviews = reviews;
+        Users = users;
+        UsersLibrary = usersLibrary;
     }
 
     /// <summary>

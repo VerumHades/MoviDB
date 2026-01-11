@@ -1,5 +1,9 @@
-﻿using MoviDB.Domain.Entities.User;
+﻿using System.Text;
+using MoviDB.Domain.DTOs;
+using MoviDB.Domain.Entities.User;
 using MoviDB.Domain.Repositories;
+using MoviDB.Domain.ValueObjects;
+using MoviDB.Infrastructure.Database;
 
 namespace MoviDB.Infrastructure.Repositories;
 
@@ -46,6 +50,26 @@ public sealed class SqlUserQueryRepository(ISqlExecutor sqlExecutor) : Repositor
             throw new KeyNotFoundException($"User '{username}' not found.");
 
         return user;
+    }
+    
+    public async Task<(UserProjection[],UserCursor)> GetNextBatchOfAllAsync(int batchSize,UserCursor? cursor = null){
+        var (filter, parameters) = FilterMapper.BuildBatchClause(cursor?.CreatedAt, cursor?.Id);
+
+        DateTime createdAt = new DateTime();
+        var rows = await _sqlExecutor.QueryAsync($"SELECT TOP {batchSize} id, username, created_at FROM [user] {filter}", parameters, reader =>
+        {
+            int id = reader.GetInt32(0);
+            string username = reader.GetString(1);
+           
+            createdAt = reader.GetDateTime(2);
+            return new UserProjection(id, username);
+        });
+
+        var nextCursor = rows.Count > 0
+            ? new UserCursor(rows[^1].Id, createdAt)
+            : cursor ?? new UserCursor(0, DateTime.MinValue);
+
+        return (rows.ToArray(), nextCursor);
     }
 }
 
@@ -113,5 +137,23 @@ public sealed class SqlUserCommandRepository(ISqlExecutor sqlExecutor) : Reposit
             throw new KeyNotFoundException($"User with ID {user.Id} not found.");
 
         return rows[0];
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        if (id <= 0)
+            throw new ArgumentException("ID must be positive.", nameof(id));
+
+        const string sqlDelete = @"
+            DELETE FROM [user]
+            WHERE id = @id;
+        ";
+        
+        var parameters = new Dictionary<string, object>
+        {
+            ["@id"] = id
+        };
+
+        await _sqlExecutor.ExecuteNonQueryAsync(sqlDelete, parameters);
     }
 }
