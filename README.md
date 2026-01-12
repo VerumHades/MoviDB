@@ -80,6 +80,7 @@ Manual schema creation is **not supported**.
    ```
    sql/credentials.sql
    ```
+> Note: This step should be done in one execute, only if you encounter errors (parts already exist), should you resort to selective execution (make sure that user priviliges are granted in the proper database)
 7. Execute the necessary commands in this order:
    1. Create logins (If they don't already exist)
    2. Users (If they don't already exist)
